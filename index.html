@@ -1,164 +1,103 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Alarma Vecinos - Manquimávida 5</title>
+  <title>Alarma Manquimávida 5</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     [x-cloak] { display: none !important; }
-    .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes bounce-custom { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    .dot-bounce { animation: bounce-custom 1s infinite; }
+    /* Ajuste para App Inventor: Evita que el contenido se desplace */
+    body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
   </style>
 </head>
-
 <body class="bg-slate-900 font-sans antialiased">
 
-  <div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-2">
+  <div x-data="alarmaApp()" x-init="init()" class="h-screen flex items-center justify-center p-2">
+    <div class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 relative h-[95vh]">
 
-    <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative"
-      style="min-height: 600px;">
-
-      <div class="bg-slate-900 px-6 py-5 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+      <div class="bg-slate-900 px-6 py-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg">
           <i data-lucide="shield" class="w-5 h-5 text-white"></i>
         </div>
         <div class="flex-1">
           <p class="text-white font-bold text-base leading-tight">Alarma Vecinos</p>
-          <p class="text-slate-400 text-xs">Manquimávida 5 · <span x-text="usuario.depto ? 'Depto ' + usuario.depto : 'Vinculando...'"></span></p>
+          <p class="text-slate-400 text-xs">Manquimávida 5 · <span x-text="usuario.depto || '...' "></span></p>
         </div>
       </div>
 
       <template x-if="estado === 'login'">
-        <div class="p-8 flex flex-col items-center justify-center text-center h-[520px] animate-in fade-in">
-            <div class="bg-amber-100 p-5 rounded-full mb-6">
-                <i data-lucide="key-round" class="w-10 h-10 text-amber-600"></i>
-            </div>
-            <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase italic">Activar Sistema</h2>
-            <p class="text-slate-500 text-sm mb-8">Ingresa el código de 4 dígitos asignado a tu departamento.</p>
-            
-            <input type="number" x-model="codigoIngresado" placeholder="0000" 
-                   class="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-3xl font-bold tracking-[10px] outline-none focus:border-amber-500 mb-6">
-            
-            <button @click="ingresar()" :disabled="cargando"
-                    class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50 shadow-xl">
-                <span x-show="!cargando">VINCULAR TELÉFONO</span>
-                <span x-show="cargando" class="flex items-center justify-center gap-2">
-                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> VALIDANDO...
-                </span>
-            </button>
+        <div class="p-8 flex flex-col items-center justify-center text-center h-full">
+            <div class="bg-amber-100 p-5 rounded-full mb-6"><i data-lucide="key-round" class="text-amber-600"></i></div>
+            <h2 class="text-xl font-black text-slate-900 mb-2 uppercase italic">Vincular Teléfono</h2>
+            <input type="number" x-model="codigoIngresado" placeholder="CÓDIGO" class="w-full bg-slate-100 border-2 rounded-2xl p-4 text-center text-2xl font-bold tracking-[5px] outline-none mb-6">
+            <button @click="ingresar()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">ACTIVAR</button>
         </div>
       </template>
 
       <template x-if="estado === 'inicio'">
-        <div class="p-6 animate-in fade-in duration-500">
-          <div class="text-center mb-6 mt-2">
-            <p class="text-slate-500 text-sm mb-1" x-text="'Hola ' + usuario.nombre + ' 👋'"></p>
-            <p class="text-slate-900 text-xl font-bold uppercase tracking-tight">¿Necesitas ayuda?</p>
-          </div>
-
-          <button @click="seleccionarAlarma('afuera')" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all rounded-2xl p-6 mb-3 text-left shadow-lg shadow-amber-500/30 group">
-                    <div class="text-5xl mb-2">👀</div>
-                    <p class="text-white text-xl font-bold mb-1">Veo algo raro afuera</p>
-                    <p class="text-amber-50 text-sm opacity-90">Personas extrañas o ruidos</p>
+        <div class="p-6 h-full overflow-y-auto pb-20">
+          <p class="text-slate-500 text-sm text-center mb-6">Hola <span x-text="usuario.nombre"></span>, ¿qué sucede?</p>
+          
+          <button @click="seleccionarAlarma('Sospechosos')" class="w-full bg-amber-500 rounded-2xl p-6 mb-4 text-left shadow-lg">
+            <div class="text-4xl mb-2">👀</div>
+            <p class="text-white text-xl font-bold">Veo algo raro afuera</p>
           </button>
 
-          <button @click="seleccionarAlarma('adentro')" class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all rounded-2xl p-6 mb-5 text-left shadow-lg shadow-red-600/30 group">
-                    <div class="text-5xl mb-2">🆘</div>
-                    <p class="text-white text-xl font-bold mb-1">Emergencia en mi casa</p>
-                    <p class="text-red-50 text-sm opacity-90">Salud, incendio o peligro</p>
+          <button @click="seleccionarAlarma('Emergencia')" class="w-full bg-red-600 rounded-2xl p-6 mb-8 text-left shadow-lg">
+            <div class="text-4xl mb-2">🆘</div>
+            <p class="text-white text-xl font-bold">Emergencia en mi casa</p>
           </button>
 
-          <div class="grid grid-cols-3 gap-2 pt-4 border-t border-slate-100">
-              <a href="tel:133" class="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-                <i data-lucide="phone" class="w-4 h-4 text-blue-600 mx-auto mb-1"></i>
-                <p class="text-blue-900 font-bold text-xs">133</p>
-              </a>
-              <a href="tel:131" class="bg-red-50 rounded-xl p-3 text-center border border-red-100">
-                <i data-lucide="phone" class="w-4 h-4 text-red-600 mx-auto mb-1"></i>
-                <p class="text-red-900 font-bold text-xs">131</p>
-              </a>
-              <a href="tel:132" class="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
-                <i data-lucide="phone" class="w-4 h-4 text-orange-600 mx-auto mb-1"></i>
-                <p class="text-orange-900 font-bold text-xs">132</p>
-              </a>
+          <div class="grid grid-cols-3 gap-2 border-t pt-4">
+              <a href="tel:133" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">POLICÍA</a>
+              <a href="tel:131" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">SAMU</a>
+              <a href="tel:132" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">BOMBEROS</a>
           </div>
-        </div>
-      </template>
-
-      <template x-if="estado === 'confirmar'">
-        <div class="p-6 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300" style="min-height: 500px;">
-          <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'" class="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-5 shadow-inner">
-            <span x-text="tipoSeleccionado === 'afuera' ? '👀' : '🆘'"></span>
-          </div>
-          <p class="text-slate-900 text-2xl font-bold mb-2">¿Confirmar Alerta?</p>
-          <p class="text-slate-600 text-sm mb-6 px-4 text-pretty">Se notificará a todos los teléfonos vinculados de la comunidad.</p>
-
-          <button @click="enviarAlertaReal()" class="w-full bg-slate-900 text-white text-lg font-bold rounded-2xl py-5 mb-3 shadow-lg active:scale-95 transition-all">
-                    ENVIAR AHORA
-          </button>
-          <button @click="estado = 'inicio'" class="w-full bg-slate-100 text-slate-500 font-bold rounded-2xl py-4">
-                    CANCELAR
-          </button>
-        </div>
-      </template>
-
-      <template x-if="estado === 'activa'">
-        <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-50' : 'bg-red-50'" class="p-6 transition-colors duration-500" style="min-height: 520px;">
-          <div class="text-center mb-5">
-            <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-500' : 'bg-red-600'" class="inline-flex items-center gap-2 text-white rounded-full px-4 py-1.5 mb-3 shadow-md">
-              <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              <span class="text-[10px] font-black uppercase tracking-widest">Alerta en Progreso</span>
-            </div>
-            <p class="text-slate-900 text-2xl font-black italic uppercase">Aviso Enviado</p>
-            <p class="text-slate-500 text-xs font-mono mt-1 flex items-center justify-center gap-1">
-              <i data-lucide="clock" class="w-3 h-3"></i> T+ <span x-text="formatearTiempo(segundos)"></span>
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-4 mb-4 shadow-xl border border-slate-100">
-            <p class="text-slate-400 text-[10px] font-bold uppercase mb-4 text-center">Unidades de Respuesta en camino</p>
-            <div class="space-y-2 max-h-[200px] overflow-y-auto">
-              <template x-if="respondedores.length === 0">
-                <div class="py-6 text-center">
-                  <div class="flex justify-center gap-1 mb-2">
-                    <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0s"></div>
-                    <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0.2s"></div>
-                    <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0.4s"></div>
-                  </div>
-                </div>
-              </template>
-              <template x-for="r in respondedores" :key="r.nombre">
-                <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl p-3 animate-in slide-in-from-right">
-                  <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-black text-xs" x-text="r.nombre[0]"></div>
-                  <div class="flex-1">
-                    <p class="text-slate-900 font-bold text-xs" x-text="r.nombre"></p>
-                    <p class="text-slate-500 text-[9px]" x-text="'Depto ' + r.depto"></p>
-                  </div>
-                  <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <button @click="terminarAlerta()" class="w-full bg-slate-900 text-white text-sm font-bold rounded-2xl py-4 shadow-xl active:scale-95">
-                    ESTOY BIEN / FINALIZAR
-          </button>
         </div>
       </template>
 
       <template x-if="estado === 'recibiendo'">
-        <div class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white animate-in zoom-in">
-            <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-24 h-24 text-white"></i></div>
-            <h2 class="text-3xl font-black italic mb-2 uppercase tracking-tighter">¡ALERTA VECINAL!</h2>
-            <p class="text-red-100 text-xl mb-1" x-text="alertaEntrante.tipo"></p>
-            <p class="text-4xl font-black mb-6" x-text="'DEPTO ' + alertaEntrante.depto"></p>
-            <p class="mb-10 font-bold italic opacity-80" x-text="'Emitida por: ' + alertaEntrante.emisor"></p>
-            <button @click="estado = 'inicio'" class="bg-white text-red-600 px-12 py-4 rounded-full font-black uppercase text-sm shadow-2xl active:scale-95">ENTENDIDO</button>
+        <div class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white">
+            <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-20 h-20"></i></div>
+            <h2 class="text-2xl font-black italic mb-2 uppercase">¡ALERTA VECINAL!</h2>
+            <p class="text-4xl font-black mb-2" x-text="'DEPTO ' + alertaEntrante.depto"></p>
+            <p class="mb-8 font-bold italic" x-text="alertaEntrante.emisor + ' reporta ' + alertaEntrante.tipo"></p>
+            
+            <div class="w-full space-y-3">
+                <button @click="responderAlerta(alertaEntrante.tipo === 'Sospechosos' ? 'Recibido' : 'En camino')" 
+                        class="w-full bg-white text-red-600 py-5 rounded-2xl font-black uppercase shadow-2xl">
+                    <span x-text="alertaEntrante.tipo === 'Sospechosos' ? '✅ MARCAR RECIBIDO' : '🏃 VOY EN CAMINO'"></span>
+                </button>
+                <button @click="pararSonido(); estado = 'inicio'" class="w-full bg-red-800 py-3 rounded-2xl text-xs font-bold">SILENCIAR Y CERRAR</button>
+            </div>
+        </div>
+      </template>
+
+      <template x-if="estado === 'activa'">
+        <div class="p-6 h-full bg-slate-50">
+            <div class="text-center mb-6">
+                <div class="bg-red-600 text-white inline-block px-4 py-1 rounded-full text-[10px] font-bold animate-pulse">ALERTA ACTIVA</div>
+                <p class="text-2xl font-black mt-2">NOTIFICANDO VECINOS</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-4 shadow-sm border min-h-[250px]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4 text-center italic">Respuestas en tiempo real:</p>
+                <div class="space-y-3">
+                    <template x-for="res in respuestasRecibidas" :key="res">
+                        <div class="flex items-center gap-3 bg-green-50 p-3 rounded-xl border border-green-100 animate-in slide-in-from-right">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+                            <p class="text-xs font-bold text-slate-700" x-text="res"></p>
+                        </div>
+                    </template>
+                    <template x-if="respuestasRecibidas.length === 0">
+                        <p class="text-center py-10 text-slate-300 text-xs">Esperando que alguien responda...</p>
+                    </template>
+                </div>
+            </div>
+            <button @click="estado = 'inicio'" class="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold">TERMINAR ALERTA</button>
         </div>
       </template>
 
@@ -168,40 +107,23 @@
   <script>
     function alarmaApp() {
       return {
-        // --- CONFIGURACIÓN ---
-        apiUrl: 'https://script.google.com/macros/s/AKfycbyHpoB2pdDvYE3Lg38Q4K0z8QW3q8XNDXPsfOD51fKFKvdDsKLgzYyvHiR0JPxaYipiQg/exec',
+        apiUrl: 'https://script.google.com/macros/s/AKfycbxqPPM3-SUt8eQEQVPIpsMYoyjbHTWi1E4wbA6y4FGbI7rJmtQ7FFSq19S10R1euhdt1A/exec',
         estado: 'login',
-        cargando: false,
         codigoIngresado: '',
         usuario: { nombre: '', depto: '' },
-        
-        // --- ESTADOS DE ALERTA ---
-        tipoSeleccionado: null,
-        segundos: 0,
-        interval: null,
-        respondedores: [],
-        alertaEntrante: { emisor: '', depto: '', tipo: '' },
-        
-        // Simuladores para vista "Activa"
-        vecinosSimulados: [
-            { nombre: 'Pilar', depto: '204-A', delay: 3 },
-            { nombre: 'Sandra', depto: '301-A', delay: 7 },
-            { nombre: 'Camila', depto: '102-A', delay: 12 }
-        ],
+        alertaEntrante: {},
+        respuestasRecibidas: [],
+        audioAlarma: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'), // Sonido de sirena
 
         init() {
           lucide.createIcons();
+          this.audioAlarma.loop = true;
           const cod = localStorage.getItem('user_cod');
-          if (cod) {
-            this.codigoIngresado = cod;
-            this.ingresar(true); // Login automático
-          }
+          if (cod) { this.codigoIngresado = cod; this.ingresar(true); }
           this.$watch('estado', () => this.$nextTick(() => lucide.createIcons()));
         },
 
-        async ingresar(silencioso = false) {
-          if (!this.codigoIngresado) return;
-          this.cargando = true;
+        async ingresar(silent = false) {
           try {
             const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigoIngresado}`);
             const data = await res.json();
@@ -210,51 +132,31 @@
               localStorage.setItem('user_cod', this.codigoIngresado);
               this.estado = 'inicio';
               this.iniciarEscucha();
-            } else if (!silencioso) {
-              alert("Código no reconocido.");
-            }
-          } catch (e) { 
-              if(!silencioso) alert("Error de conexión"); 
-          }
-          this.cargando = false;
+            } else if (!silent) alert("Código no válido");
+          } catch (e) { if(!silent) alert("Error de conexión"); }
         },
 
-        seleccionarAlarma(tipo) {
-          this.tipoSeleccionado = tipo;
-          this.estado = 'confirmar';
-        },
-
-        async enviarAlertaReal() {
+        async seleccionarAlarma(tipo) {
           this.estado = 'activa';
-          this.segundos = 0;
-          this.respondedores = [];
-          
-          // Cronómetro
-          this.interval = setInterval(() => this.segundos++, 1000);
-
-          // Simular respondedores para feedback visual
-          this.vecinosSimulados.forEach(v => {
-            setTimeout(() => {
-              if (this.estado === 'activa') {
-                this.respondedores.push(v);
-                this.$nextTick(() => lucide.createIcons());
-              }
-            }, v.delay * 1000);
+          this.respuestasRecibidas = [];
+          await fetch(this.apiUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.usuario.nombre, depto: this.usuario.depto })
           });
+          // Iniciamos monitoreo de respuestas
+          this.monitorearRespuestas();
+        },
 
-          // Envío real a la Sheet
-          try {
-            await fetch(this.apiUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              body: JSON.stringify({
-                action: 'nueva_alerta',
-                tipo: this.tipoSeleccionado === 'afuera' ? 'Sospechosos' : 'Emergencia',
-                nombre: this.usuario.nombre,
-                depto: this.usuario.depto
-              })
-            });
-          } catch (e) {}
+        async responderAlerta(status) {
+          this.pararSonido();
+          await fetch(this.apiUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'responder_alerta', vecino: this.usuario.nombre, status: status })
+          });
+          this.estado = 'inicio';
+          alert("Respuesta enviada. Gracias por colaborar.");
         },
 
         iniciarEscucha() {
@@ -266,21 +168,24 @@
               if (data.length > 0 && data[0].depto !== this.usuario.depto) {
                 this.alertaEntrante = data[0];
                 this.estado = 'recibiendo';
+                this.audioAlarma.play();
               }
             } catch (e) {}
-          }, 5000);
+          }, 4000);
         },
 
-        terminarAlerta() {
-          clearInterval(this.interval);
-          this.estado = 'inicio';
+        monitorearRespuestas() {
+          const check = setInterval(async () => {
+            if (this.estado !== 'activa') return clearInterval(check);
+            const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
+            const data = await res.json();
+            if (data.length > 0 && data[0].respuestas) {
+              this.respuestasRecibidas = data[0].respuestas.split('|');
+            }
+          }, 3000);
         },
 
-        formatearTiempo(s) {
-          const min = Math.floor(s / 60);
-          const seg = s % 60;
-          return `${min}:${seg.toString().padStart(2, '0')}`;
-        }
+        pararSonido() { this.audioAlarma.pause(); this.audioAlarma.currentTime = 0; }
       }
     }
   </script>
