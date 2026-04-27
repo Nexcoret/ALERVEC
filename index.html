@@ -16,6 +16,22 @@
     .animate-pulse-slow {
       animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
+
+    @keyframes bounce-custom {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-5px);
+      }
+    }
+
+    .dot-bounce {
+      animation: bounce-custom 1s infinite;
+    }
   </style>
 </head>
 
@@ -27,7 +43,7 @@
       style="min-height: 640px;">
 
       <div class="bg-slate-900 px-6 py-5 flex items-center gap-3">
-        <div @click="vistaActual = 'inicio'"
+        <div @click="irAInicio()"
           class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg cursor-pointer">
           <i data-lucide="shield" class="w-5 h-5 text-white"></i>
         </div>
@@ -40,56 +56,141 @@
         </button>
       </div>
 
-      <div x-show="vistaActual === 'inicio'" class="p-6 animate-in fade-in duration-500">
-        <div class="text-center mb-6 mt-2">
-          <p class="text-slate-500 text-sm mb-1" x-text="'Hola ' + usuario.nombre + ' 👋'"></p>
-          <p class="text-slate-900 text-xl font-bold uppercase tracking-tight">¿Necesitas ayuda?</p>
+      <template x-if="estado === 'verificando'">
+        <div class="p-6 flex flex-col items-center justify-center text-center" style="min-height: 540px;">
+          <div class="w-12 h-12 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+          <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Validando Identidad...</p>
         </div>
+      </template>
 
-        <button @click="enviarAlerta('afuera')" :disabled="cargando" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all rounded-2xl p-6 mb-3 text-left shadow-lg disabled:opacity-50">
-          <div class="text-5xl mb-2">👀</div>
-          <p class="text-white text-xl font-bold mb-1">Veo algo raro afuera</p>
-          <p class="text-amber-50 text-sm">Sospechosos o ruidos externos</p>
-        </button>
-
-        <button @click="enviarAlerta('adentro')" :disabled="cargando" class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all rounded-2xl p-6 mb-5 text-left shadow-lg disabled:opacity-50">
-          <div class="text-5xl mb-2">🆘</div>
-          <p class="text-white text-xl font-bold mb-1">Emergencia en mi casa</p>
-          <p class="text-red-50 text-sm">Salud, incendio o peligro</p>
-        </button>
-      </div>
-
-      <div x-show="vistaActual === 'login_admin'" class="p-8 flex flex-col items-center justify-center"
-        style="min-height: 500px;">
-        <h2 class="text-slate-900 text-2xl font-black mb-6 uppercase">Acceso Admin</h2>
-        <div class="w-full space-y-4">
-          <input type="text" x-model="loginData.user" placeholder="Usuario" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
-          <input type="password" x-model="loginData.pass" placeholder="Contraseña" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
-          <button @click="autenticar()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl active:scale-95 transition-all">INGRESAR</button>
+      <template x-if="estado === 'no_registrado'">
+        <div class="p-6 flex flex-col items-center justify-center text-center animate-in fade-in"
+          style="min-height: 540px;">
+          <div class="bg-red-100 p-6 rounded-full mb-6">
+            <i data-lucide="user-x" class="w-12 h-12 text-red-600"></i>
+          </div>
+          <p class="text-slate-900 text-xl font-black mb-2 uppercase">Acceso Denegado</p>
+          <p class="text-slate-500 text-sm mb-8">Tu número de teléfono no figura en la base de datos de residentes
+            autorizados.</p>
+          <button @click="init()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">REINTENTAR</button>
         </div>
-      </div>
+      </template>
 
-      <div x-show="vistaActual === 'panel_admin'" class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <p class="text-slate-900 text-lg font-black uppercase italic">Residentes</p>
-          <button @click="abrirForm()" class="bg-green-500 text-white p-2 rounded-lg shadow-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
-        </div>
+      <template x-if="estado === 'inicio'">
+        <div class="p-6 animate-in fade-in duration-500">
+          <div class="text-center mb-6 mt-2">
+            <p class="text-slate-500 text-sm mb-1" x-text="'Hola ' + usuario.nombre + ' 👋'"></p>
+            <p class="text-slate-900 text-xl font-bold uppercase tracking-tight">¿Necesitas ayuda?</p>
+          </div>
 
-        <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-          <template x-for="res in listaUsuarios" :key="res.telefono">
-            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
-              <div>
-                <p class="text-slate-900 font-bold text-sm" x-text="res.nombre"></p>
-                <p class="text-slate-500 text-[10px]" x-text="'Depto ' + res.depto + ' · ' + res.telefono"></p>
-              </div>
-              <div class="flex gap-2">
-                <button @click="editarRes(res)" class="text-slate-400 hover:text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                <button @click="eliminarRes(res.telefono)" class="text-slate-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-              </div>
+          <button @click="seleccionarAlarma('afuera')" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all rounded-2xl p-6 mb-3 text-left shadow-lg shadow-amber-500/30 group">
+            <div class="text-5xl mb-2">👀</div>
+            <p class="text-white text-xl font-bold mb-1">Veo algo raro afuera</p>
+            <p class="text-amber-50 text-sm opacity-90">Personas extrañas o ruidos</p>
+          </button>
+
+          <button @click="seleccionarAlarma('adentro')" class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all rounded-2xl p-6 mb-5 text-left shadow-lg shadow-red-600/30 group">
+            <div class="text-5xl mb-2">🆘</div>
+            <p class="text-white text-xl font-bold mb-1">Emergencia en mi casa</p>
+            <p class="text-red-50 text-sm opacity-90">Salud, incendio o peligro</p>
+          </button>
+
+          <div class="border-t border-slate-100 pt-4">
+            <div class="grid grid-cols-3 gap-2">
+              <a href="tel:133" class="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+                <p class="text-blue-900 font-bold text-sm">133</p>
+              </a>
+              <a href="tel:131" class="bg-red-50 rounded-xl p-3 text-center border border-red-100">
+                <p class="text-red-900 font-bold text-sm">131</p>
+              </a>
+              <a href="tel:132" class="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+                <p class="text-orange-900 font-bold text-sm">132</p>
+              </a>
             </div>
-          </template>
+          </div>
         </div>
-      </div>
+      </template>
+
+      <template x-if="estado === 'confirmar'">
+        <div class="p-6 flex flex-col items-center justify-center text-center animate-in zoom-in"
+          style="min-height: 540px;">
+          <div :class="tipoAlarma === 'afuera' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'"
+            class="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-5 shadow-inner">
+            <span x-text="tipoAlarma === 'afuera' ? '👀' : '🆘'"></span>
+          </div>
+          <p class="text-slate-900 text-2xl font-bold mb-2">¿Confirmar Alerta?</p>
+          <p class="text-slate-600 text-sm mb-8 px-4">Se notificará a todos los vecinos inscritos inmediatamente.</p>
+
+          <button @click="dispararAlerta()" class="w-full text-white text-lg font-bold rounded-2xl py-5 mb-3 shadow-lg active:scale-95 transition-all bg-slate-900">
+            ENVIAR AHORA
+          </button>
+          <button @click="estado = 'inicio'" class="w-full bg-slate-100 text-slate-500 font-bold rounded-2xl py-4">
+            CANCELAR
+          </button>
+        </div>
+      </template>
+
+      <template x-if="estado === 'activa'">
+        <div :class="tipoAlarma === 'afuera' ? 'bg-amber-50' : 'bg-red-50'" class="p-6 transition-colors"
+          style="min-height: 540px;">
+          <div class="text-center mb-5">
+            <div :class="tipoAlarma === 'afuera' ? 'bg-amber-500' : 'bg-red-600'"
+              class="inline-flex items-center gap-2 text-white rounded-full px-4 py-1.5 mb-3 shadow-md">
+              <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span class="text-[10px] font-black uppercase tracking-widest">Alerta en Progreso</span>
+            </div>
+            <p class="text-slate-900 text-2xl font-black italic">AVISO ENVIADO</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 mb-8 shadow-xl border border-slate-100">
+            <p class="text-slate-400 text-[10px] font-bold uppercase mb-4 text-center">Esperando apoyo de vecinos...</p>
+            <div class="flex justify-center gap-1">
+              <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0s"></div>
+              <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0.2s"></div>
+              <div class="w-2 h-2 bg-slate-300 rounded-full dot-bounce" style="animation-delay: 0.4s"></div>
+            </div>
+          </div>
+
+          <button @click="resolverAlerta()" class="w-full bg-slate-900 text-white text-sm font-bold rounded-2xl py-4 shadow-xl">
+            INDICAR "ESTOY BIEN"
+          </button>
+        </div>
+      </template>
+
+      <template x-if="estado === 'login_admin'">
+        <div class="p-8 flex flex-col items-center justify-center" style="min-height: 500px;">
+          <h2 class="text-slate-900 text-2xl font-black mb-6 uppercase tracking-tighter italic">Acceso Admin</h2>
+          <div class="w-full space-y-4">
+            <input type="text" x-model="loginData.user" placeholder="Usuario" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
+            <input type="password" x-model="loginData.pass" placeholder="Contraseña" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
+            <button @click="autenticar()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl active:scale-95 transition-all">INGRESAR</button>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="estado === 'panel_admin'">
+        <div class="p-6 animate-in slide-in-from-bottom">
+          <div class="flex justify-between items-center mb-6">
+            <p class="text-slate-900 text-lg font-black uppercase italic">Residentes</p>
+            <button @click="abrirForm()" class="bg-green-500 text-white p-2 rounded-lg shadow-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
+          </div>
+          <div class="space-y-3 max-h-[400px] overflow-y-auto">
+            <template x-for="res in listaUsuarios" :key="res.telefono">
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p class="text-slate-900 font-bold text-sm" x-text="res.nombre"></p>
+                  <p class="text-slate-500 text-[10px]" x-text="'Depto ' + res.depto + ' · ' + res.telefono"></p>
+                </div>
+                <div class="flex gap-2">
+                  <button @click="editarRes(res)" class="text-slate-400 hover:text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                  <button @click="eliminarRes(res.telefono)" class="text-slate-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </template>
+          </div>
+          <button @click="estado = 'inicio'" class="w-full mt-4 bg-slate-100 py-3 rounded-xl text-slate-500 font-bold">VOLVER</button>
+        </div>
+      </template>
 
       <div x-show="mostrarForm" x-cloak
         class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
@@ -113,79 +214,123 @@
       return {
         // --- CONFIGURACIÓN ---
         apiUrl: 'https://script.google.com/macros/s/AKfycbxvUanLVeg2KEUq9yfelxzjbUjOcwHRh4LuhW_OsRKrLbh3VdR9_h8d5pR0ByQVnohR/exec',
-        vistaActual: 'inicio',
-        subtitulo: '',
-        cargando: false,
+        estado: 'verificando', // verificando, no_registrado, inicio, confirmar, activa, login_admin, panel_admin
+        subtitulo: 'Validando...',
         mostrarForm: false,
         isEdit: false,
 
         // --- DATOS ---
-        usuario: { nombre: 'Héctor', depto: '203-A', telefono: '+56944527951' },
+        usuario: { nombre: '', depto: '', telefono: '' },
         loginData: { user: '', pass: '' },
         tempUser: { nombre: '', telefono: '', depto: '' },
         listaUsuarios: [],
+        tipoAlarma: null,
 
         async init() {
           lucide.createIcons();
-          this.subtitulo = `Depto ${this.usuario.depto}`;
-          // Cargar usuarios al inicio si es admin
-          if (this.vistaActual === 'panel_admin') this.cargarUsuarios();
+          this.obtenerTelefonoApp();
         },
 
-        refreshIcons() {
-          this.$nextTick(() => lucide.createIcons());
+        // 1. MEJORA: Obtener teléfono desde App Inventor
+        obtenerTelefonoApp() {
+          if (typeof window.AppInventor !== "undefined") {
+            let datosApp = window.AppInventor.getWebViewString();
+            if (datosApp) {
+              try {
+                let parsed = JSON.parse(datosApp);
+                this.usuario.telefono = parsed.telefono;
+                this.verificarInscrito();
+              } catch (e) { this.estado = 'no_registrado'; }
+            } else { this.estado = 'no_registrado'; }
+          } else {
+            // Modo Desarrollo (PC)
+            this.usuario.telefono = '+56944527951';
+            this.verificarInscrito();
+          }
         },
 
-        // --- LÓGICA DE ALERTAS ---
-        async enviarAlerta(tipo) {
-          this.cargando = true;
+        async verificarInscrito() {
           try {
-            const response = await fetch(`${this.apiUrl}?action=verificar_inscrito&telefono=${this.usuario.telefono}`);
-            const data = await response.json();
-
-            if (!data.success) {
-              alert("Acceso Denegado: Su número no está registrado en el sistema.");
-              return;
+            const res = await fetch(`${this.apiUrl}?action=verificar_inscrito&telefono=${this.usuario.telefono}`);
+            const data = await res.json();
+            if (data.success) {
+              this.usuario.nombre = data.nombre || 'Vecino';
+              this.usuario.depto = data.depto || 'S/N';
+              this.subtitulo = `Depto ${this.usuario.depto}`;
+              this.estado = 'inicio';
+              // Iniciar escucha de alertas de otros
+              setInterval(() => this.escucharAlertasVecinas(), 8000);
+            } else {
+              this.estado = 'no_registrado';
             }
+          } catch (e) { this.estado = 'no_registrado'; }
+          this.refreshIcons();
+        },
 
-            // Registrar alerta en Google Sheets
+        // 2. MEJORA: Escuchar si alguien más disparó la alerta
+        async escucharAlertasVecinas() {
+            if(this.estado !== 'inicio') return;
+            try {
+                const res = await fetch(`${this.apiUrl}?action=obtener_ultimas_alertas`);
+                const alertas = await res.json();
+                if(alertas.length > 0) {
+                    const ultima = alertas[0];
+                    // Si hay una alerta de hace menos de 1 minuto y no es mía
+                    if(ultima.telefono !== this.usuario.telefono) {
+                        alert(`🚨 ALERTA VECINAL: Depto ${ultima.ubicacion} (${ultima.emisor}) reporta ${ultima.tipo}`);
+                    }
+                }
+            } catch(e){}
+        },
+
+        seleccionarAlarma(tipo) {
+          this.tipoAlarma = tipo;
+          this.estado = 'confirmar';
+          this.refreshIcons();
+        },
+
+        async dispararAlerta() {
+          this.estado = 'activa';
+          try {
             await fetch(this.apiUrl, {
               method: 'POST',
               mode: 'no-cors',
               body: JSON.stringify({
                 action: 'nueva_alerta',
-                tipo: tipo === 'afuera' ? 'Riesgo Externo' : 'Emergencia en Casa',
+                tipo: this.tipoAlarma === 'afuera' ? 'Riesgo Externo' : 'Emergencia en Casa',
                 telefono: this.usuario.telefono
               })
             });
-
-            alert(`🚨 ALERTA ENVIADA: Depto ${this.usuario.depto}. Notificando a todos los vecinos.`);
-            
-            // Link a WhatsApp del grupo
-            const msg = `🚨 *ALERTA DE SEGURIDAD* 🚨\n📍 Depto: ${this.usuario.depto}\n⚠️ Tipo: ${tipo === 'afuera' ? 'Sospechosos afuera' : 'Emergencia en casa'}`;
+            // Abrir WhatsApp para reforzar notificación
+            const msg = `🚨 *ALERTA DE SEGURIDAD* 🚨\n📍 Depto: ${this.usuario.depto}\n👤 Emisor: ${this.usuario.nombre}\n⚠️ Tipo: ${this.tipoAlarma === 'afuera' ? 'Sospechosos afuera' : 'Emergencia interna'}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-
-          } catch (e) {
-            console.error(e);
-            alert("Error de conexión con el sistema central.");
-          } finally {
-            this.cargando = false;
-          }
+          } catch (e) {}
+          this.refreshIcons();
         },
 
-        // --- GESTIÓN ADMIN ---
+        resolverAlerta() {
+          const msg = `✅ *SITUACIÓN OK*\n📍 Depto: ${this.usuario.depto}\nLa emergencia ha sido controlada.`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+          this.estado = 'inicio';
+          this.refreshIcons();
+        },
+
+        // --- GESTIÓN ADMINISTRADOR ---
         irAAdmin() {
-            this.vistaActual = this.vistaActual === 'panel_admin' ? 'inicio' : 'login_admin';
+            this.estado = (this.estado === 'panel_admin' || this.estado === 'login_admin') ? 'inicio' : 'login_admin';
+            this.refreshIcons();
+        },
+        
+        irAInicio() {
+            this.estado = 'inicio';
             this.refreshIcons();
         },
 
         autenticar() {
           if (this.loginData.user === 'admin' && this.loginData.pass === 'admin1234') {
-            this.vistaActual = 'panel_admin';
+            this.estado = 'panel_admin';
             this.cargarUsuarios();
-          } else {
-            alert('Credenciales incorrectas');
-          }
+          } else { alert('Credenciales incorrectas'); }
         },
 
         async cargarUsuarios() {
@@ -210,24 +355,24 @@
 
         async guardarUsuario() {
           await fetch(this.apiUrl, {
-            method: 'POST',
-            mode: 'no-cors',
+            method: 'POST', mode: 'no-cors',
             body: JSON.stringify({ action: 'guardar_usuario', ...this.tempUser })
           });
           this.mostrarForm = false;
-          setTimeout(() => this.cargarUsuarios(), 500);
+          setTimeout(() => this.cargarUsuarios(), 800);
         },
 
         async eliminarRes(tel) {
           if (confirm('¿Eliminar residente?')) {
             await fetch(this.apiUrl, {
-              method: 'POST',
-              mode: 'no-cors',
+              method: 'POST', mode: 'no-cors',
               body: JSON.stringify({ action: 'eliminar_usuario', telefono: tel })
             });
-            setTimeout(() => this.cargarUsuarios(), 500);
+            setTimeout(() => this.cargarUsuarios(), 800);
           }
-        }
+        },
+
+        refreshIcons() { this.$nextTick(() => lucide.createIcons()); }
       }
     }
   </script>
