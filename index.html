@@ -1,166 +1,100 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seguridad Manquimávida 5</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Seguridad Vecinal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-slate-900 font-sans">
+<body class="bg-slate-900">
+    <div x-data="app()" x-init="init()" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden relative" style="min-height: 550px;">
+            
+            <div x-show="estado === 'login'" class="p-8 flex flex-col items-center justify-center h-[550px]">
+                <div class="bg-amber-100 p-4 rounded-full mb-4"><i data-lucide="key" class="text-amber-600"></i></div>
+                <h1 class="text-xl font-bold mb-2">Activar Sistema</h1>
+                <input type="number" x-model="codigo" placeholder="Código de 4 dígitos" class="w-full border-2 p-4 rounded-xl text-center text-2xl mb-4 outline-none focus:border-slate-900">
+                <button @click="ingresar()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">INGRESAR</button>
+            </div>
 
-<div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative" style="min-height: 600px;">
-    
-    <div x-show="estado === 'registro'" class="p-8 flex flex-col items-center justify-center h-[600px]">
-      <div class="bg-amber-100 p-5 rounded-full mb-6">
-        <i data-lucide="key-round" class="w-10 h-10 text-amber-600"></i>
-      </div>
-      <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase italic text-center">Activar Aplicación</h2>
-      <p class="text-slate-500 text-sm text-center mb-8">Ingresa el código asignado para vincular este teléfono.</p>
-      
-      <input type="number" x-model="codigoIngresado" placeholder="Código de 4 dígitos" 
-             class="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-2xl font-bold tracking-[10px] outline-none focus:border-amber-500 mb-4">
-      
-      <button @click="vincularCodigo()" :disabled="cargando"
-              class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
-        CONFIGURAR AHORA
-      </button>
+            <div x-show="estado === 'panel'" x-cloak>
+                <div class="bg-slate-900 p-6 text-white">
+                    <p class="text-xs opacity-50 uppercase">Residente</p>
+                    <p class="font-bold text-lg" x-text="user.nombre"></p>
+                </div>
+                <div class="p-6 space-y-4">
+                    <button @click="alerta('SOSPECHOSOS')" class="w-full bg-amber-500 p-6 rounded-2xl text-white font-bold text-left shadow-lg active:scale-95 transition-all">
+                        <p class="text-2xl uppercase italic">Sospechosos</p>
+                        <p class="text-xs opacity-80">Aviso preventivo afuera</p>
+                    </button>
+                    <button @click="alerta('EMERGENCIA')" class="w-full bg-red-600 p-6 rounded-2xl text-white font-bold text-left shadow-lg active:scale-95 transition-all">
+                        <p class="text-2xl uppercase italic text-center">Emergencia</p>
+                    </button>
+                </div>
+            </div>
+
+            <div x-show="estado === 'recibiendo'" x-cloak class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white">
+                <div class="animate-bounce mb-4"><i data-lucide="alert-triangle" class="w-20 h-20"></i></div>
+                <h2 class="text-3xl font-black mb-2 uppercase">¡Alerta!</h2>
+                <p class="text-4xl font-bold mb-4" x-text="'DEPTO ' + incoming.depto"></p>
+                <p class="mb-8" x-text="incoming.emisor + ' reporta ' + incoming.tipo"></p>
+                <button @click="estado = 'panel'" class="bg-white text-red-600 px-8 py-3 rounded-full font-bold">ENTENDIDO</button>
+            </div>
+        </div>
     </div>
 
-    <div x-show="estado === 'inicio'" class="animate-in fade-in">
-      <div class="bg-slate-900 p-6 text-white flex justify-between items-center">
-        <div>
-          <p class="text-[10px] text-slate-400 font-bold uppercase">Residente Autorizado</p>
-          <p class="font-bold italic" x-text="usuario.nombre"></p>
-        </div>
-        <div class="text-right text-[10px] text-amber-500 font-bold">
-           DEPTO <span class="text-lg block text-white" x-text="usuario.depto"></span>
-        </div>
-      </div>
+    <script>
+        function app() {
+            return {
+                apiUrl: 'https://script.google.com/macros/s/AKfycbyHpoB2pdDvYE3Lg38Q4K0z8QW3q8XNDXPsfOD51fKFKvdDsKLgzYyvHiR0JPxaYipiQg/exec',
+                estado: 'login',
+                codigo: '',
+                user: { nombre: '', depto: '' },
+                incoming: { emisor: '', depto: '', tipo: '' },
 
-      <div class="p-6 space-y-4">
-        <button @click="lanzarAlerta('SOSPECHOSOS')" class="w-full bg-amber-500 rounded-3xl p-6 text-left shadow-lg shadow-amber-200 active:scale-95 transition-all">
-          <p class="text-white font-black text-xl italic uppercase">Veo Sospechosos</p>
-          <p class="text-amber-100 text-xs">Aviso preventivo a la comunidad</p>
-        </button>
+                init() {
+                    lucide.createIcons();
+                    const saved = localStorage.getItem('user_cod');
+                    if (saved) { this.codigo = saved; this.ingresar(); }
+                },
 
-        <button @click="lanzarAlerta('EMERGENCIA')" class="w-full bg-red-600 rounded-3xl p-8 text-left shadow-xl shadow-red-200 active:scale-95 transition-all">
-          <p class="text-white font-black text-2xl italic uppercase">Emergencia</p>
-          <p class="text-red-100 text-xs uppercase font-bold tracking-widest mt-1">Peligro en mi casa</p>
-        </button>
-        
-        <div class="grid grid-cols-2 gap-3 pt-4">
-          <a href="tel:133" class="bg-slate-100 p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-slate-700">
-            <i data-lucide="phone" class="w-4 h-4"></i> Carabineros
-          </a>
-          <a href="tel:132" class="bg-slate-100 p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-slate-700">
-            <i data-lucide="flame" class="w-4 h-4"></i> Bomberos
-          </a>
-        </div>
-      </div>
-    </div>
+                async ingresar() {
+                    const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigo}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        this.user = data;
+                        localStorage.setItem('user_cod', this.codigo);
+                        this.estado = 'panel';
+                        this.escuchar();
+                    } else { alert("Código no válido"); }
+                    this.$nextTick(() => lucide.createIcons());
+                },
 
-    <div x-show="estado === 'recibiendo_alerta'" x-cloak class="absolute inset-0 bg-red-600 z-50 flex flex-col items-center justify-center p-8 text-center text-white">
-      <div class="animate-bounce mb-8">
-        <i data-lucide="octagon-alert" class="w-24 h-24 text-white"></i>
-      </div>
-      <h2 class="text-3xl font-black italic mb-2 uppercase">¡Alerta Vecinal!</h2>
-      <p class="text-red-100 text-xl mb-1" x-text="alertaEntrante.tipo"></p>
-      <p class="text-4xl font-black mb-10" x-text="'DEPTO ' + alertaEntrante.depto"></p>
-      <p class="mb-8 font-bold italic" x-text="'Emitida por: ' + alertaEntrante.emisor"></p>
-      <button @click="estado = 'inicio'" class="bg-white text-red-600 px-10 py-4 rounded-full font-black uppercase text-sm">Entendido</button>
-    </div>
+                async alerta(tipo) {
+                    await fetch(this.apiUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.user.nombre, depto: this.user.depto })
+                    });
+                    alert("Alerta enviada a los vecinos");
+                },
 
-  </div>
-</div>
-
-<script>
-function alarmaApp() {
-  return {
-    // CAMBIA ESTA URL POR TU URL DE GOOGLE APPS SCRIPT
-    apiUrl: 'https://script.google.com/macros/s/AKfycbyKEx4QU-xOiykbHggKczekgu7oZiaNbhb5sR4Rcm1Me0Czb9Fmo_xFlyjAlgTmAZ1L/exec',
-    estado: 'cargando', 
-    codigoIngresado: '',
-    cargando: false,
-    usuario: { nombre: '', depto: '', codigo: '' },
-    alertaEntrante: { emisor: '', depto: '', tipo: '' },
-
-    init() {
-      lucide.createIcons();
-      const codigoGuardado = localStorage.getItem('codigo_residente');
-      if (codigoGuardado) {
-        this.verificarUsuario(codigoGuardado);
-      } else {
-        this.estado = 'registro';
-      }
-    },
-
-    async vincularCodigo() {
-      if (!this.codigoIngresado) return alert("Ingresa tu código");
-      this.cargando = true;
-      await this.verificarUsuario(this.codigoIngresado);
-      this.cargando = false;
-    },
-
-    async verificarUsuario(cod) {
-      try {
-        const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${cod}`);
-        const data = await res.json();
-        if (data.success) {
-          this.usuario = { ...data, codigo: cod };
-          localStorage.setItem('codigo_residente', cod);
-          this.estado = 'inicio';
-          this.iniciarEscucha();
-        } else {
-          alert("Código no reconocido en la base de datos.");
-          this.estado = 'registro';
-        }
-      } catch (e) { alert("Error de conexión"); }
-      this.refreshIcons();
-    },
-
-    async lanzarAlerta(tipo) {
-      try {
-        await fetch(this.apiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({
-            action: 'nueva_alerta',
-            tipo: tipo,
-            nombre: this.usuario.nombre,
-            depto: this.usuario.depto
-          })
-        });
-        alert("ALERTA ENVIADA A TODOS LOS VECINOS");
-      } catch (e) { alert("Error al emitir alerta"); }
-    },
-
-    // ESTO PERMITE QUE LOS TELÉFONOS SE COMUNIQUEN ENTRE SÍ
-    iniciarEscucha() {
-      setInterval(async () => {
-        if (this.estado === 'inicio') {
-          try {
-            const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
-            const alertas = await res.json();
-            if (alertas.length > 0) {
-              const u = alertas[0];
-              // Solo mostrar si la alerta no es mía
-              if (u.depto !== this.usuario.depto) {
-                this.alertaEntrante = u;
-                this.estado = 'recibiendo_alerta';
-                this.refreshIcons();
-              }
+                escuchar() {
+                    setInterval(async () => {
+                        if (this.estado !== 'panel') return;
+                        const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
+                        const data = await res.json();
+                        if (data.length > 0 && data[0].depto !== this.user.depto) {
+                            this.incoming = data[0];
+                            this.estado = 'recibiendo';
+                            this.$nextTick(() => lucide.createIcons());
+                        }
+                    }, 5000);
+                }
             }
-          } catch (e) {}
         }
-      }, 5000); // Revisa cada 5 segundos si hay alertas nuevas
-    },
-
-    refreshIcons() { this.$nextTick(() => lucide.createIcons()); }
-  }
-}
-</script>
+    </script>
 </body>
 </html>
