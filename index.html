@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,15 +9,30 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    [x-cloak] { display: none !important; }
-    /* Ajuste para App Inventor: Evita que el contenido se desplace */
-    body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
+    [x-cloak] {
+      display: none !important;
+    }
+
+    body {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background-color: #0f172a;
+    }
+
+    /* Fix para que los botones se sientan como app nativa */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
   </style>
 </head>
-<body class="bg-slate-900 font-sans antialiased">
+
+<body class="font-sans antialiased">
 
   <div x-data="alarmaApp()" x-init="init()" class="h-screen flex items-center justify-center p-2">
-    <div class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 relative h-[95vh]">
+    <div
+      class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 relative h-[98vh]">
 
       <div class="bg-slate-900 px-6 py-4 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg">
@@ -24,82 +40,93 @@
         </div>
         <div class="flex-1">
           <p class="text-white font-bold text-base leading-tight">Alarma Vecinos</p>
-          <p class="text-slate-400 text-xs">Manquimávida 5 · <span x-text="usuario.depto || '...' "></span></p>
+          <p class="text-slate-400 text-[10px] uppercase tracking-wider"
+            x-text="usuario.depto ? 'Depto ' + usuario.depto : 'Cargando...'"></p>
         </div>
       </div>
 
-      <template x-if="estado === 'login'">
-        <div class="p-8 flex flex-col items-center justify-center text-center h-full">
-            <div class="bg-amber-100 p-5 rounded-full mb-6"><i data-lucide="key-round" class="text-amber-600"></i></div>
-            <h2 class="text-xl font-black text-slate-900 mb-2 uppercase italic">Vincular Teléfono</h2>
-            <input type="number" x-model="codigoIngresado" placeholder="CÓDIGO" class="w-full bg-slate-100 border-2 rounded-2xl p-4 text-center text-2xl font-bold tracking-[5px] outline-none mb-6">
-            <button @click="ingresar()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">ACTIVAR</button>
+      <div x-show="estado === 'login'" class="p-8 flex flex-col items-center justify-center text-center h-full">
+        <div class="bg-amber-100 p-5 rounded-full mb-6 text-amber-600"><i data-lucide="key-round" class="w-8 h-8"></i>
         </div>
-      </template>
+        <h2 class="text-xl font-black text-slate-900 mb-2 uppercase italic">Vincular Teléfono</h2>
+        <p class="text-slate-500 text-xs mb-6">Ingresa tu código de 4 dígitos para activar el sistema.</p>
+        <input type="number" x-model="codigoIngresado" placeholder="0000"
+                 class="w-full bg-slate-100 border-2 rounded-2xl p-4 text-center text-3xl font-bold tracking-[8px] outline-none mb-6 focus:border-amber-500 transition-all">
+        <button @click="ingresar()" :disabled="buscando"
+                  class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
+              <span x-text="buscando ? 'VALIDANDO...' : 'ACTIVAR AHORA'"></span>
+          </button>
+      </div>
 
-      <template x-if="estado === 'inicio'">
-        <div class="p-6 h-full overflow-y-auto pb-20">
-          <p class="text-slate-500 text-sm text-center mb-6">Hola <span x-text="usuario.nombre"></span>, ¿qué sucede?</p>
-          
-          <button @click="seleccionarAlarma('Sospechosos')" class="w-full bg-amber-500 rounded-2xl p-6 mb-4 text-left shadow-lg">
+      <div x-show="estado === 'inicio'" class="p-6 h-full overflow-y-auto pb-24" x-cloak>
+        <p class="text-slate-500 text-sm text-center mb-6 italic">Hola
+          <span class="font-bold text-slate-800" x-text="usuario.nombre"></span>, el sistema está activo.</p>
+
+        <button @click="seleccionarAlarma('Sospechosos')" class="w-full bg-amber-500 rounded-3xl p-6 mb-4 text-left shadow-lg shadow-amber-200 active:scale-95 transition-all">
             <div class="text-4xl mb-2">👀</div>
-            <p class="text-white text-xl font-bold">Veo algo raro afuera</p>
+            <p class="text-white text-xl font-black italic uppercase">Sospechosos</p>
+            <p class="text-amber-100 text-xs">Aviso preventivo afuera</p>
           </button>
 
-          <button @click="seleccionarAlarma('Emergencia')" class="w-full bg-red-600 rounded-2xl p-6 mb-8 text-left shadow-lg">
+        <button @click="seleccionarAlarma('Emergencia')" class="w-full bg-red-600 rounded-3xl p-6 mb-8 text-left shadow-lg shadow-red-200 active:scale-95 transition-all">
             <div class="text-4xl mb-2">🆘</div>
-            <p class="text-white text-xl font-bold">Emergencia en mi casa</p>
+            <p class="text-white text-xl font-black italic uppercase">Emergencia</p>
+            <p class="text-red-100 text-xs">Peligro inmediato en casa</p>
           </button>
 
-          <div class="grid grid-cols-3 gap-2 border-t pt-4">
-              <a href="tel:133" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">POLICÍA</a>
-              <a href="tel:131" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">SAMU</a>
-              <a href="tel:132" class="bg-slate-100 rounded-xl p-3 text-center font-bold text-xs">BOMBEROS</a>
+        <div class="grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+          <a href="tel:133" class="bg-blue-50 text-blue-600 rounded-xl py-3 text-center font-black text-[10px]">133</a>
+          <a href="tel:131" class="bg-red-50 text-red-600 rounded-xl py-3 text-center font-black text-[10px]">131</a>
+          <a href="tel:132"
+            class="bg-orange-50 text-orange-600 rounded-xl py-3 text-center font-black text-[10px]">132</a>
+        </div>
+      </div>
+
+      <div x-show="estado === 'recibiendo'"
+        class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white"
+        x-cloak>
+        <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-20 h-20"></i></div>
+        <h2 class="text-2xl font-black italic mb-2 uppercase">¡ALERTA VECINAL!</h2>
+        <p class="text-4xl font-black mb-2 leading-tight" x-text="'DEPTO ' + alertaEntrante.depto"></p>
+        <p class="mb-10 font-bold italic opacity-80" x-text="alertaEntrante.emisor + ' reporta ' + alertaEntrante.tipo">
+        </p>
+
+        <div class="w-full space-y-3">
+          <button @click="responderAlerta(alertaEntrante.tipo === 'Sospechosos' ? 'Recibido' : 'En camino')"
+                      class="w-full bg-white text-red-600 py-5 rounded-2xl font-black uppercase shadow-2xl active:scale-95">
+                  <span x-text="alertaEntrante.tipo === 'Sospechosos' ? '✅ MARCAR RECIBIDO' : '🏃 VOY EN CAMINO'"></span>
+              </button>
+          <button @click="pararSonido(); estado = 'inicio'" class="w-full bg-red-800/50 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest">Silenciar Alarma</button>
+        </div>
+      </div>
+
+      <div x-show="estado === 'activa'" class="p-6 h-full bg-slate-50 flex flex-col" x-cloak>
+        <div class="text-center mb-6">
+          <div class="bg-red-600 text-white inline-block px-4 py-1 rounded-full text-[10px] font-black animate-pulse">
+            ALERTA EN PROGRESO</div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-inner border flex-1 mb-4 overflow-y-auto">
+          <p class="text-[10px] font-bold text-slate-400 uppercase mb-4 text-center italic">Vecinos que respondieron:
+          </p>
+          <div class="space-y-2">
+            <template x-for="res in respuestasRecibidas" :key="res">
+              <div
+                class="flex items-center gap-3 bg-green-50 p-3 rounded-2xl border border-green-100 animate-in slide-in-from-right">
+                <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+                <p class="text-xs font-bold text-slate-700" x-text="res"></p>
+              </div>
+            </template>
+            <template x-if="respuestasRecibidas.length === 0">
+              <div class="py-12 text-center opacity-30">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                <p class="text-[10px] font-bold">ESPERANDO RESPUESTAS...</p>
+              </div>
+            </template>
           </div>
         </div>
-      </template>
-
-      <template x-if="estado === 'recibiendo'">
-        <div class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white">
-            <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-20 h-20"></i></div>
-            <h2 class="text-2xl font-black italic mb-2 uppercase">¡ALERTA VECINAL!</h2>
-            <p class="text-4xl font-black mb-2" x-text="'DEPTO ' + alertaEntrante.depto"></p>
-            <p class="mb-8 font-bold italic" x-text="alertaEntrante.emisor + ' reporta ' + alertaEntrante.tipo"></p>
-            
-            <div class="w-full space-y-3">
-                <button @click="responderAlerta(alertaEntrante.tipo === 'Sospechosos' ? 'Recibido' : 'En camino')" 
-                        class="w-full bg-white text-red-600 py-5 rounded-2xl font-black uppercase shadow-2xl">
-                    <span x-text="alertaEntrante.tipo === 'Sospechosos' ? '✅ MARCAR RECIBIDO' : '🏃 VOY EN CAMINO'"></span>
-                </button>
-                <button @click="pararSonido(); estado = 'inicio'" class="w-full bg-red-800 py-3 rounded-2xl text-xs font-bold">SILENCIAR Y CERRAR</button>
-            </div>
-        </div>
-      </template>
-
-      <template x-if="estado === 'activa'">
-        <div class="p-6 h-full bg-slate-50">
-            <div class="text-center mb-6">
-                <div class="bg-red-600 text-white inline-block px-4 py-1 rounded-full text-[10px] font-bold animate-pulse">ALERTA ACTIVA</div>
-                <p class="text-2xl font-black mt-2">NOTIFICANDO VECINOS</p>
-            </div>
-            
-            <div class="bg-white rounded-2xl p-4 shadow-sm border min-h-[250px]">
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4 text-center italic">Respuestas en tiempo real:</p>
-                <div class="space-y-3">
-                    <template x-for="res in respuestasRecibidas" :key="res">
-                        <div class="flex items-center gap-3 bg-green-50 p-3 rounded-xl border border-green-100 animate-in slide-in-from-right">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
-                            <p class="text-xs font-bold text-slate-700" x-text="res"></p>
-                        </div>
-                    </template>
-                    <template x-if="respuestasRecibidas.length === 0">
-                        <p class="text-center py-10 text-slate-300 text-xs">Esperando que alguien responda...</p>
-                    </template>
-                </div>
-            </div>
-            <button @click="estado = 'inicio'" class="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold">TERMINAR ALERTA</button>
-        </div>
-      </template>
+        <button @click="estado = 'inicio'" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl">TERMINAR ALERTA</button>
+      </div>
 
     </div>
   </div>
@@ -110,53 +137,67 @@
         apiUrl: 'https://script.google.com/macros/s/AKfycbxqPPM3-SUt8eQEQVPIpsMYoyjbHTWi1E4wbA6y4FGbI7rJmtQ7FFSq19S10R1euhdt1A/exec',
         estado: 'login',
         codigoIngresado: '',
+        buscando: false,
         usuario: { nombre: '', depto: '' },
         alertaEntrante: {},
         respuestasRecibidas: [],
-        audioAlarma: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'), // Sonido de sirena
+        audioAlarma: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'),
 
         init() {
           lucide.createIcons();
           this.audioAlarma.loop = true;
-          const cod = localStorage.getItem('user_cod');
-          if (cod) { this.codigoIngresado = cod; this.ingresar(true); }
+          // Fix para App Inventor: Intentar recuperar de forma segura
+          try {
+            const savedCod = localStorage.getItem('user_cod_v2');
+            if (savedCod) {
+                this.codigoIngresado = savedCod;
+                this.ingresar(true);
+            }
+          } catch(e) { console.log("Storage no listo"); }
+          
           this.$watch('estado', () => this.$nextTick(() => lucide.createIcons()));
         },
 
         async ingresar(silent = false) {
+          if (!this.codigoIngresado) return;
+          this.buscando = true;
           try {
             const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigoIngresado}`);
             const data = await res.json();
             if (data.success) {
               this.usuario = data;
-              localStorage.setItem('user_cod', this.codigoIngresado);
+              localStorage.setItem('user_cod_v2', this.codigoIngresado);
               this.estado = 'inicio';
               this.iniciarEscucha();
-            } else if (!silent) alert("Código no válido");
-          } catch (e) { if(!silent) alert("Error de conexión"); }
+            } else if (!silent) alert("Código Incorrecto");
+          } catch (e) { if(!silent) alert("Error de Conexión"); }
+          this.buscando = false;
         },
 
         async seleccionarAlarma(tipo) {
           this.estado = 'activa';
           this.respuestasRecibidas = [];
-          await fetch(this.apiUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.usuario.nombre, depto: this.usuario.depto })
-          });
-          // Iniciamos monitoreo de respuestas
+          // Enviar alerta a la base de datos
+          try {
+            await fetch(this.apiUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.usuario.nombre, depto: this.usuario.depto })
+            });
+          } catch(e){}
           this.monitorearRespuestas();
         },
 
         async responderAlerta(status) {
           this.pararSonido();
-          await fetch(this.apiUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ action: 'responder_alerta', vecino: this.usuario.nombre, status: status })
-          });
+          try {
+            await fetch(this.apiUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({ action: 'responder_alerta', vecino: this.usuario.nombre, status: status })
+            });
+          } catch(e){}
           this.estado = 'inicio';
-          alert("Respuesta enviada. Gracias por colaborar.");
         },
 
         iniciarEscucha() {
@@ -168,20 +209,22 @@
               if (data.length > 0 && data[0].depto !== this.usuario.depto) {
                 this.alertaEntrante = data[0];
                 this.estado = 'recibiendo';
-                this.audioAlarma.play();
+                this.audioAlarma.play().catch(() => {}); // Catch para navegadores que bloquean autoplay
               }
             } catch (e) {}
-          }, 4000);
+          }, 5000);
         },
 
         monitorearRespuestas() {
-          const check = setInterval(async () => {
-            if (this.estado !== 'activa') return clearInterval(check);
-            const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
-            const data = await res.json();
-            if (data.length > 0 && data[0].respuestas) {
-              this.respuestasRecibidas = data[0].respuestas.split('|');
-            }
+          const timer = setInterval(async () => {
+            if (this.estado !== 'activa') return clearInterval(timer);
+            try {
+              const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
+              const data = await res.json();
+              if (data.length > 0 && data[0].respuestas) {
+                this.respuestasRecibidas = data[0].respuestas.split('|');
+              }
+            } catch (e) {}
           }, 3000);
         },
 
@@ -190,4 +233,5 @@
     }
   </script>
 </body>
+
 </html>
