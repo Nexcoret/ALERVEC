@@ -3,179 +3,164 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alarma Vecinos - Manquimávida 5</title>
+  <title>Seguridad Manquimávida 5</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    [x-cloak] { display: none !important; }
-    .animate-ring { animation: ring 1.5s infinite; }
-    @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 100% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
-  </style>
 </head>
+<body class="bg-slate-900 font-sans">
 
-<body class="bg-slate-100 font-sans antialiased">
-
-  <div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-4">
-
-    <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative" style="min-height: 660px;">
-
-      <div class="bg-slate-900 px-6 py-6 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg">
-          <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-white font-bold text-sm leading-tight">Sistema de Seguridad</p>
-          <p class="text-slate-400 text-[10px] uppercase tracking-widest" x-text="estado === 'inicio' ? 'Identificado: ' + usuario.telefono : 'Verificando...'"></p>
-        </div>
-        <button @click="irAAdmin()" class="text-slate-600 hover:text-white transition-colors">
-            <i data-lucide="settings" class="w-4 h-4"></i>
-        </button>
+<div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative" style="min-height: 600px;">
+    
+    <div x-show="estado === 'registro'" class="p-8 flex flex-col items-center justify-center h-[600px]">
+      <div class="bg-amber-100 p-5 rounded-full mb-6">
+        <i data-lucide="key-round" class="w-10 h-10 text-amber-600"></i>
       </div>
-
-      <div x-show="estado === 'cargando'" class="p-8 flex flex-col items-center justify-center text-center h-[500px]">
-        <div class="w-12 h-12 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin mb-4"></div>
-        <p class="text-slate-500 font-bold text-xs">RECONOCIENDO NÚMERO...</p>
-      </div>
-
-      <div x-show="estado === 'no_registrado'" x-cloak class="p-8 flex flex-col items-center justify-center text-center h-[500px] animate-in fade-in">
-        <div class="bg-red-50 p-6 rounded-full mb-6">
-            <i data-lucide="phone-off" class="w-12 h-12 text-red-500"></i>
-        </div>
-        <h2 class="text-slate-900 text-xl font-black mb-2 uppercase">NÚMERO NO AUTORIZADO</h2>
-        <p class="text-slate-500 text-sm mb-8" x-text="'El teléfono ' + usuario.telefono + ' no tiene permiso para emitir alertas.'"></p>
-        <button @click="window.location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">REINTENTAR</button>
-      </div>
-
-      <div x-show="estado === 'inicio'" x-cloak class="p-6 animate-in slide-in-from-bottom duration-500">
-        <div class="mb-8">
-            <p class="text-slate-400 text-xs font-bold uppercase mb-1">Bienvenido(a)</p>
-            <p class="text-slate-900 text-2xl font-black" x-text="usuario.nombre"></p>
-            <p class="text-amber-600 text-sm font-bold" x-text="'📍 Depto: ' + usuario.depto"></p>
-        </div>
-
-        <div class="space-y-4">
-            <button @click="enviarAlerta('AFUERA')" class="w-full bg-white border-2 border-amber-500 rounded-3xl p-5 text-left flex items-center gap-4 active:scale-95 transition-all shadow-sm">
-                <span class="text-4xl">👀</span>
-                <div>
-                    <p class="text-slate-900 font-black text-lg leading-tight">SOSPECHOSOS</p>
-                    <p class="text-slate-500 text-xs font-medium italic">Ruidos o personas extrañas</p>
-                </div>
-            </button>
-
-            <button @click="enviarAlerta('ADENTRO')" class="w-full bg-red-600 rounded-3xl p-6 text-left flex items-center gap-4 active:scale-95 transition-all shadow-xl shadow-red-200">
-                <span class="text-4xl">🆘</span>
-                <div>
-                    <p class="text-white font-black text-xl leading-tight uppercase">Emergencia</p>
-                    <p class="text-red-100 text-xs opacity-80">Peligro inmediato en casa</p>
-                </div>
-            </button>
-        </div>
-
-        <div class="mt-12 pt-6 border-t border-slate-100">
-            <button @click="abrirWhatsAppGrupo()" class="w-full flex items-center justify-center gap-2 text-green-600 font-bold text-sm">
-                <i data-lucide="message-circle" class="w-4 h-4"></i>
-                IR AL GRUPO DE VECINOS
-            </button>
-        </div>
-      </div>
-
-      <div x-show="estado === 'alerta_enviada'" x-cloak class="absolute inset-0 bg-red-600 z-50 flex flex-col items-center justify-center p-8 text-center animate-pulse">
-          <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 animate-ring">
-              <i data-lucide="bell" class="w-16 h-16 text-red-600"></i>
-          </div>
-          <h2 class="text-white text-3xl font-black mb-4">ALERTA ACTIVA</h2>
-          <p class="text-red-100 mb-8 font-medium italic">Vecinos notificados. WhatsApp grupal abierto.</p>
-          <button @click="estado = 'inicio'" class="bg-white text-red-600 px-8 py-3 rounded-full font-black text-sm">VOLVER AL PANEL</button>
-      </div>
-
+      <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase italic text-center">Activar Aplicación</h2>
+      <p class="text-slate-500 text-sm text-center mb-8">Ingresa el código asignado para vincular este teléfono.</p>
+      
+      <input type="number" x-model="codigoIngresado" placeholder="Código de 4 dígitos" 
+             class="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-2xl font-bold tracking-[10px] outline-none focus:border-amber-500 mb-4">
+      
+      <button @click="vincularCodigo()" :disabled="cargando"
+              class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
+        CONFIGURAR AHORA
+      </button>
     </div>
-  </div>
 
-  <script>
-    function alarmaApp() {
-      return {
-        // CAMBIA ESTO POR TU URL DE GOOGLE APPS SCRIPT
-        apiUrl: 'https://script.google.com/macros/s/AKfycbxvUanLVeg2KEUq9yfelxzjbUjOcwHRh4LuhW_OsRKrLbh3VdR9_h8d5pR0ByQVnohR/exec',
+    <div x-show="estado === 'inicio'" class="animate-in fade-in">
+      <div class="bg-slate-900 p-6 text-white flex justify-between items-center">
+        <div>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Residente Autorizado</p>
+          <p class="font-bold italic" x-text="usuario.nombre"></p>
+        </div>
+        <div class="text-right text-[10px] text-amber-500 font-bold">
+           DEPTO <span class="text-lg block text-white" x-text="usuario.depto"></span>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <button @click="lanzarAlerta('SOSPECHOSOS')" class="w-full bg-amber-500 rounded-3xl p-6 text-left shadow-lg shadow-amber-200 active:scale-95 transition-all">
+          <p class="text-white font-black text-xl italic uppercase">Veo Sospechosos</p>
+          <p class="text-amber-100 text-xs">Aviso preventivo a la comunidad</p>
+        </button>
+
+        <button @click="lanzarAlerta('EMERGENCIA')" class="w-full bg-red-600 rounded-3xl p-8 text-left shadow-xl shadow-red-200 active:scale-95 transition-all">
+          <p class="text-white font-black text-2xl italic uppercase">Emergencia</p>
+          <p class="text-red-100 text-xs uppercase font-bold tracking-widest mt-1">Peligro en mi casa</p>
+        </button>
         
-        estado: 'cargando',
-        usuario: { telefono: '', nombre: '', depto: '' },
+        <div class="grid grid-cols-2 gap-3 pt-4">
+          <a href="tel:133" class="bg-slate-100 p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-slate-700">
+            <i data-lucide="phone" class="w-4 h-4"></i> Carabineros
+          </a>
+          <a href="tel:132" class="bg-slate-100 p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-slate-700">
+            <i data-lucide="flame" class="w-4 h-4"></i> Bomberos
+          </a>
+        </div>
+      </div>
+    </div>
 
-        init() {
-          lucide.createIcons();
-          // Intentamos obtener el teléfono de la APK
-          this.obtenerTelefonoDesdeApp();
-        },
+    <div x-show="estado === 'recibiendo_alerta'" x-cloak class="absolute inset-0 bg-red-600 z-50 flex flex-col items-center justify-center p-8 text-center text-white">
+      <div class="animate-bounce mb-8">
+        <i data-lucide="octagon-alert" class="w-24 h-24 text-white"></i>
+      </div>
+      <h2 class="text-3xl font-black italic mb-2 uppercase">¡Alerta Vecinal!</h2>
+      <p class="text-red-100 text-xl mb-1" x-text="alertaEntrante.tipo"></p>
+      <p class="text-4xl font-black mb-10" x-text="'DEPTO ' + alertaEntrante.depto"></p>
+      <p class="mb-8 font-bold italic" x-text="'Emitida por: ' + alertaEntrante.emisor"></p>
+      <button @click="estado = 'inicio'" class="bg-white text-red-600 px-10 py-4 rounded-full font-black uppercase text-sm">Entendido</button>
+    </div>
 
-        obtenerTelefonoDesdeApp() {
-          if (typeof window.AppInventor !== "undefined") {
-            let jsonString = window.AppInventor.getWebViewString();
-            if (jsonString) {
-              try {
-                let data = JSON.parse(jsonString);
-                this.usuario.telefono = data.telefono; // Formato esperado: +569XXXXXXXX
-                this.validarIdentidad();
-              } catch (e) { this.estado = 'no_registrado'; }
-            } else { this.estado = 'no_registrado'; }
-          } else {
-            // TEST EN PC: Número de prueba
-            this.usuario.telefono = '+56944527951'; 
-            this.validarIdentidad();
-          }
-        },
+  </div>
+</div>
 
-        async validarIdentidad() {
-          try {
-            const res = await fetch(`${this.apiUrl}?action=verificar_inscrito&telefono=${this.usuario.telefono}`);
-            const data = await res.json();
-            if (data.success) {
-              this.usuario.nombre = data.nombre;
-              this.usuario.depto = data.depto;
-              this.estado = 'inicio';
-            } else {
-              this.estado = 'no_registrado';
-            }
-          } catch (e) { this.estado = 'no_registrado'; }
-          this.$nextTick(() => lucide.createIcons());
-        },
+<script>
+function alarmaApp() {
+  return {
+    // CAMBIA ESTA URL POR TU URL DE GOOGLE APPS SCRIPT
+    apiUrl: 'https://script.google.com/macros/s/AKfycbyKEx4QU-xOiykbHggKczekgu7oZiaNbhb5sR4Rcm1Me0Czb9Fmo_xFlyjAlgTmAZ1L/exec',
+    estado: 'cargando', 
+    codigoIngresado: '',
+    cargando: false,
+    usuario: { nombre: '', depto: '', codigo: '' },
+    alertaEntrante: { emisor: '', depto: '', tipo: '' },
 
-        async enviarAlerta(tipo) {
-          // 1. Notificar al servidor (Registro en Google Sheets)
-          try {
-            await fetch(this.apiUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              body: JSON.stringify({
-                action: 'nueva_alerta',
-                tipo: tipo,
-                telefono: this.usuario.telefono
-              })
-            });
-            
-            this.estado = 'alerta_enviada';
-
-            // 2. Vincular a WhatsApp
-            const mensaje = `🚨 *ALERTA DE SEGURIDAD - MANQUIMÁVIDA 5* 🚨\n\n👤 *Emisor:* ${this.usuario.nombre}\n📍 *Ubicación:* Depto ${this.usuario.depto}\n⚠️ *Tipo:* ${tipo === 'AFUERA' ? 'Actividad sospechosa afuera' : 'EMERGENCIA EN EL DOMICILIO'}\n📞 *Teléfono:* ${this.usuario.telefono}\n\n_Favor verificar cámaras o salir con precaución._`;
-            
-            // Abrir WhatsApp con el mensaje pre-cargado
-            window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
-
-          } catch (e) {
-            alert("Error al conectar con la central.");
-          }
-          this.$nextTick(() => lucide.createIcons());
-        },
-
-        abrirWhatsAppGrupo() {
-            // Aquí puedes poner el link directo a tu grupo de WhatsApp
-            window.open('https://chat.whatsapp.com/TU_LINK_AQUI', '_blank');
-        },
-
-        irAAdmin() {
-            alert("Acceso administrativo requiere validación externa.");
-        }
+    init() {
+      lucide.createIcons();
+      const codigoGuardado = localStorage.getItem('codigo_residente');
+      if (codigoGuardado) {
+        this.verificarUsuario(codigoGuardado);
+      } else {
+        this.estado = 'registro';
       }
-    }
-  </script>
+    },
+
+    async vincularCodigo() {
+      if (!this.codigoIngresado) return alert("Ingresa tu código");
+      this.cargando = true;
+      await this.verificarUsuario(this.codigoIngresado);
+      this.cargando = false;
+    },
+
+    async verificarUsuario(cod) {
+      try {
+        const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${cod}`);
+        const data = await res.json();
+        if (data.success) {
+          this.usuario = { ...data, codigo: cod };
+          localStorage.setItem('codigo_residente', cod);
+          this.estado = 'inicio';
+          this.iniciarEscucha();
+        } else {
+          alert("Código no reconocido en la base de datos.");
+          this.estado = 'registro';
+        }
+      } catch (e) { alert("Error de conexión"); }
+      this.refreshIcons();
+    },
+
+    async lanzarAlerta(tipo) {
+      try {
+        await fetch(this.apiUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'nueva_alerta',
+            tipo: tipo,
+            nombre: this.usuario.nombre,
+            depto: this.usuario.depto
+          })
+        });
+        alert("ALERTA ENVIADA A TODOS LOS VECINOS");
+      } catch (e) { alert("Error al emitir alerta"); }
+    },
+
+    // ESTO PERMITE QUE LOS TELÉFONOS SE COMUNIQUEN ENTRE SÍ
+    iniciarEscucha() {
+      setInterval(async () => {
+        if (this.estado === 'inicio') {
+          try {
+            const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
+            const alertas = await res.json();
+            if (alertas.length > 0) {
+              const u = alertas[0];
+              // Solo mostrar si la alerta no es mía
+              if (u.depto !== this.usuario.depto) {
+                this.alertaEntrante = u;
+                this.estado = 'recibiendo_alerta';
+                this.refreshIcons();
+              }
+            }
+          } catch (e) {}
+        }
+      }, 5000); // Revisa cada 5 segundos si hay alertas nuevas
+    },
+
+    refreshIcons() { this.$nextTick(() => lucide.createIcons()); }
+  }
+}
+</script>
 </body>
 </html>
