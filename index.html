@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alarma Vecinos - Manquimávida 5</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    [x-cloak] {
+      display: none !important;
+    }
+
+    .animate-pulse-slow {
+      animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 font-sans antialiased">
+
+  <div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200"
+      style="min-height: 640px;">
+
+      <div class="bg-slate-900 px-6 py-5 flex items-center gap-3">
+        <div @click="vistaActual = 'inicio'"
+          class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg cursor-pointer">
+          <i data-lucide="shield" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-white font-bold text-base leading-tight">Alarma Vecinos</p>
+          <p class="text-slate-400 text-xs">Manquimávida 5 · <span x-text="subtitulo"></span></p>
+        </div>
+        <button @click="irAAdmin()" class="text-slate-500 hover:text-white transition-colors">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div x-show="vistaActual === 'inicio'" class="p-6 animate-in fade-in duration-500">
+        <div class="text-center mb-6 mt-2">
+          <p class="text-slate-500 text-sm mb-1" x-text="'Hola ' + usuario.nombre + ' 👋'"></p>
+          <p class="text-slate-900 text-xl font-bold uppercase tracking-tight">¿Necesitas ayuda?</p>
+        </div>
+
+        <button @click="enviarAlerta('afuera')" :disabled="cargando" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all rounded-2xl p-6 mb-3 text-left shadow-lg disabled:opacity-50">
+          <div class="text-5xl mb-2">👀</div>
+          <p class="text-white text-xl font-bold mb-1">Veo algo raro afuera</p>
+          <p class="text-amber-50 text-sm">Sospechosos o ruidos externos</p>
+        </button>
+
+        <button @click="enviarAlerta('adentro')" :disabled="cargando" class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all rounded-2xl p-6 mb-5 text-left shadow-lg disabled:opacity-50">
+          <div class="text-5xl mb-2">🆘</div>
+          <p class="text-white text-xl font-bold mb-1">Emergencia en mi casa</p>
+          <p class="text-red-50 text-sm">Salud, incendio o peligro</p>
+        </button>
+      </div>
+
+      <div x-show="vistaActual === 'login_admin'" class="p-8 flex flex-col items-center justify-center"
+        style="min-height: 500px;">
+        <h2 class="text-slate-900 text-2xl font-black mb-6 uppercase">Acceso Admin</h2>
+        <div class="w-full space-y-4">
+          <input type="text" x-model="loginData.user" placeholder="Usuario" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
+          <input type="password" x-model="loginData.pass" placeholder="Contraseña" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900">
+          <button @click="autenticar()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl active:scale-95 transition-all">INGRESAR</button>
+        </div>
+      </div>
+
+      <div x-show="vistaActual === 'panel_admin'" class="p-6">
+        <div class="flex justify-between items-center mb-6">
+          <p class="text-slate-900 text-lg font-black uppercase italic">Residentes</p>
+          <button @click="abrirForm()" class="bg-green-500 text-white p-2 rounded-lg shadow-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+          <template x-for="res in listaUsuarios" :key="res.telefono">
+            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p class="text-slate-900 font-bold text-sm" x-text="res.nombre"></p>
+                <p class="text-slate-500 text-[10px]" x-text="'Depto ' + res.depto + ' · ' + res.telefono"></p>
+              </div>
+              <div class="flex gap-2">
+                <button @click="editarRes(res)" class="text-slate-400 hover:text-blue-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                <button @click="eliminarRes(res.telefono)" class="text-slate-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="mostrarForm" x-cloak
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-[2rem] p-6 space-y-4">
+          <p class="text-center font-bold text-slate-800" x-text="isEdit ? 'EDITAR RESIDENTE' : 'NUEVO RESIDENTE'"></p>
+          <input type="text" x-model="tempUser.nombre" placeholder="Nombre" class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
+          <input type="text" x-model="tempUser.telefono" placeholder="Teléfono" class="w-full bg-slate-50 border p-3 rounded-xl outline-none" :disabled="isEdit">
+          <input type="text" x-model="tempUser.depto" placeholder="Departamento" class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
+          <div class="flex gap-2">
+            <button @click="mostrarForm = false" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold text-slate-500">CANCELAR</button>
+            <button @click="guardarUsuario()" class="flex-1 bg-amber-500 py-3 rounded-xl font-bold text-white">GUARDAR</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function alarmaApp() {
+      return {
+        // --- CONFIGURACIÓN ---
+        apiUrl: 'https://script.google.com/macros/s/AKfycbxvUanLVeg2KEUq9yfelxzjbUjOcwHRh4LuhW_OsRKrLbh3VdR9_h8d5pR0ByQVnohR/exec',
+        vistaActual: 'inicio',
+        subtitulo: '',
+        cargando: false,
+        mostrarForm: false,
+        isEdit: false,
+
+        // --- DATOS ---
+        usuario: { nombre: 'Héctor', depto: '203-A', telefono: '+56944527951' },
+        loginData: { user: '', pass: '' },
+        tempUser: { nombre: '', telefono: '', depto: '' },
+        listaUsuarios: [],
+
+        async init() {
+          lucide.createIcons();
+          this.subtitulo = `Depto ${this.usuario.depto}`;
+          // Cargar usuarios al inicio si es admin
+          if (this.vistaActual === 'panel_admin') this.cargarUsuarios();
+        },
+
+        refreshIcons() {
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        // --- LÓGICA DE ALERTAS ---
+        async enviarAlerta(tipo) {
+          this.cargando = true;
+          try {
+            const response = await fetch(`${this.apiUrl}?action=verificar_inscrito&telefono=${this.usuario.telefono}`);
+            const data = await response.json();
+
+            if (!data.success) {
+              alert("Acceso Denegado: Su número no está registrado en el sistema.");
+              return;
+            }
+
+            // Registrar alerta en Google Sheets
+            await fetch(this.apiUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({
+                action: 'nueva_alerta',
+                tipo: tipo === 'afuera' ? 'Riesgo Externo' : 'Emergencia en Casa',
+                telefono: this.usuario.telefono
+              })
+            });
+
+            alert(`🚨 ALERTA ENVIADA: Depto ${this.usuario.depto}. Notificando a todos los vecinos.`);
+            
+            // Link a WhatsApp del grupo
+            const msg = `🚨 *ALERTA DE SEGURIDAD* 🚨\n📍 Depto: ${this.usuario.depto}\n⚠️ Tipo: ${tipo === 'afuera' ? 'Sospechosos afuera' : 'Emergencia en casa'}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+
+          } catch (e) {
+            console.error(e);
+            alert("Error de conexión con el sistema central.");
+          } finally {
+            this.cargando = false;
+          }
+        },
+
+        // --- GESTIÓN ADMIN ---
+        irAAdmin() {
+            this.vistaActual = this.vistaActual === 'panel_admin' ? 'inicio' : 'login_admin';
+            this.refreshIcons();
+        },
+
+        autenticar() {
+          if (this.loginData.user === 'admin' && this.loginData.pass === 'admin1234') {
+            this.vistaActual = 'panel_admin';
+            this.cargarUsuarios();
+          } else {
+            alert('Credenciales incorrectas');
+          }
+        },
+
+        async cargarUsuarios() {
+          const res = await fetch(`${this.apiUrl}?action=obtener_usuarios`);
+          this.listaUsuarios = await res.json();
+          this.refreshIcons();
+        },
+
+        abrirForm() {
+          this.isEdit = false;
+          this.tempUser = { nombre: '', telefono: '', depto: '' };
+          this.mostrarForm = true;
+          this.refreshIcons();
+        },
+
+        editarRes(res) {
+          this.isEdit = true;
+          this.tempUser = { ...res };
+          this.mostrarForm = true;
+          this.refreshIcons();
+        },
+
+        async guardarUsuario() {
+          await fetch(this.apiUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'guardar_usuario', ...this.tempUser })
+          });
+          this.mostrarForm = false;
+          setTimeout(() => this.cargarUsuarios(), 500);
+        },
+
+        async eliminarRes(tel) {
+          if (confirm('¿Eliminar residente?')) {
+            await fetch(this.apiUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({ action: 'eliminar_usuario', telefono: tel })
+            });
+            setTimeout(() => this.cargarUsuarios(), 500);
+          }
+        }
+      }
+    }
+  </script>
+</body>
+
+</html>
