@@ -20,16 +20,10 @@
       height: 100%;
       background-color: #0f172a;
     }
-
-    /* Fix para que los botones se sientan como app nativa */
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
   </style>
 </head>
 
 <body class="font-sans antialiased">
-
   <div x-data="alarmaApp()" x-init="init()" class="h-screen flex items-center justify-center p-2">
     <div
       class="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 relative h-[98vh]">
@@ -41,7 +35,7 @@
         <div class="flex-1">
           <p class="text-white font-bold text-base leading-tight">Alarma Vecinos</p>
           <p class="text-slate-400 text-[10px] uppercase tracking-wider"
-            x-text="usuario.depto ? 'Depto ' + usuario.depto : 'Cargando...'"></p>
+            x-text="usuario.depto ? 'Depto ' + usuario.depto : 'Conectando...'"></p>
         </div>
       </div>
 
@@ -49,32 +43,24 @@
         <div class="bg-amber-100 p-5 rounded-full mb-6 text-amber-600"><i data-lucide="key-round" class="w-8 h-8"></i>
         </div>
         <h2 class="text-xl font-black text-slate-900 mb-2 uppercase italic">Vincular Teléfono</h2>
-        <p class="text-slate-500 text-xs mb-6">Ingresa tu código de 4 dígitos para activar el sistema.</p>
         <input type="number" x-model="codigoIngresado" placeholder="0000"
-                 class="w-full bg-slate-100 border-2 rounded-2xl p-4 text-center text-3xl font-bold tracking-[8px] outline-none mb-6 focus:border-amber-500 transition-all">
+                 class="w-full bg-slate-100 border-2 rounded-2xl p-4 text-center text-3xl font-bold tracking-[8px] outline-none mb-6">
         <button @click="ingresar()" :disabled="buscando"
-                  class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
-              <span x-text="buscando ? 'VALIDANDO...' : 'ACTIVAR AHORA'"></span>
+                  class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold disabled:opacity-50">
+              <span x-text="buscando ? 'CONECTANDO...' : 'ACTIVAR'"></span>
           </button>
       </div>
 
       <div x-show="estado === 'inicio'" class="p-6 h-full overflow-y-auto pb-24" x-cloak>
-        <p class="text-slate-500 text-sm text-center mb-6 italic">Hola
-          <span class="font-bold text-slate-800" x-text="usuario.nombre"></span>, el sistema está activo.</p>
-
-        <button @click="seleccionarAlarma('Sospechosos')" class="w-full bg-amber-500 rounded-3xl p-6 mb-4 text-left shadow-lg shadow-amber-200 active:scale-95 transition-all">
+        <button @click="seleccionarAlarma('Sospechosos')" class="w-full bg-amber-500 rounded-3xl p-6 mb-4 text-left shadow-lg active:scale-95 transition-all">
             <div class="text-4xl mb-2">👀</div>
             <p class="text-white text-xl font-black italic uppercase">Sospechosos</p>
-            <p class="text-amber-100 text-xs">Aviso preventivo afuera</p>
           </button>
-
-        <button @click="seleccionarAlarma('Emergencia')" class="w-full bg-red-600 rounded-3xl p-6 mb-8 text-left shadow-lg shadow-red-200 active:scale-95 transition-all">
+        <button @click="seleccionarAlarma('Emergencia')" class="w-full bg-red-600 rounded-3xl p-6 mb-8 text-left shadow-lg active:scale-95 transition-all">
             <div class="text-4xl mb-2">🆘</div>
             <p class="text-white text-xl font-black italic uppercase">Emergencia</p>
-            <p class="text-red-100 text-xs">Peligro inmediato en casa</p>
           </button>
-
-        <div class="grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+        <div class="grid grid-cols-3 gap-2 border-t pt-4">
           <a href="tel:133" class="bg-blue-50 text-blue-600 rounded-xl py-3 text-center font-black text-[10px]">133</a>
           <a href="tel:131" class="bg-red-50 text-red-600 rounded-xl py-3 text-center font-black text-[10px]">131</a>
           <a href="tel:132"
@@ -86,46 +72,21 @@
         class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white"
         x-cloak>
         <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-20 h-20"></i></div>
-        <h2 class="text-2xl font-black italic mb-2 uppercase">¡ALERTA VECINAL!</h2>
-        <p class="text-4xl font-black mb-2 leading-tight" x-text="'DEPTO ' + alertaEntrante.depto"></p>
-        <p class="mb-10 font-bold italic opacity-80" x-text="alertaEntrante.emisor + ' reporta ' + alertaEntrante.tipo">
-        </p>
-
-        <div class="w-full space-y-3">
-          <button @click="responderAlerta(alertaEntrante.tipo === 'Sospechosos' ? 'Recibido' : 'En camino')"
-                      class="w-full bg-white text-red-600 py-5 rounded-2xl font-black uppercase shadow-2xl active:scale-95">
-                  <span x-text="alertaEntrante.tipo === 'Sospechosos' ? '✅ MARCAR RECIBIDO' : '🏃 VOY EN CAMINO'"></span>
-              </button>
-          <button @click="pararSonido(); estado = 'inicio'" class="w-full bg-red-800/50 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest">Silenciar Alarma</button>
-        </div>
+        <h2 class="text-2xl font-black mb-2" x-text="'DEPTO ' + alertaEntrante.depto"></h2>
+        <button @click="responderAlerta(alertaEntrante.tipo === 'Sospechosos' ? 'Recibido' : 'En camino')"
+                  class="w-full bg-white text-red-600 py-5 rounded-2xl font-black uppercase">
+              <span x-text="alertaEntrante.tipo === 'Sospechosos' ? '✅ RECIBIDO' : '🏃 VOY'"></span>
+          </button>
       </div>
 
       <div x-show="estado === 'activa'" class="p-6 h-full bg-slate-50 flex flex-col" x-cloak>
-        <div class="text-center mb-6">
-          <div class="bg-red-600 text-white inline-block px-4 py-1 rounded-full text-[10px] font-black animate-pulse">
-            ALERTA EN PROGRESO</div>
+        <p class="text-center font-black text-red-600 animate-pulse mb-4">ALERTA ACTIVA</p>
+        <div class="bg-white rounded-3xl p-5 shadow-inner flex-1 overflow-y-auto">
+          <template x-for="res in respuestasRecibidas">
+            <p class="text-xs font-bold text-slate-700 mb-2" x-text="'✓ ' + res"></p>
+          </template>
         </div>
-
-        <div class="bg-white rounded-3xl p-5 shadow-inner border flex-1 mb-4 overflow-y-auto">
-          <p class="text-[10px] font-bold text-slate-400 uppercase mb-4 text-center italic">Vecinos que respondieron:
-          </p>
-          <div class="space-y-2">
-            <template x-for="res in respuestasRecibidas" :key="res">
-              <div
-                class="flex items-center gap-3 bg-green-50 p-3 rounded-2xl border border-green-100 animate-in slide-in-from-right">
-                <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
-                <p class="text-xs font-bold text-slate-700" x-text="res"></p>
-              </div>
-            </template>
-            <template x-if="respuestasRecibidas.length === 0">
-              <div class="py-12 text-center opacity-30">
-                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
-                <p class="text-[10px] font-bold">ESPERANDO RESPUESTAS...</p>
-              </div>
-            </template>
-          </div>
-        </div>
-        <button @click="estado = 'inicio'" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl">TERMINAR ALERTA</button>
+        <button @click="estado = 'inicio'" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold mt-4">CERRAR</button>
       </div>
 
     </div>
@@ -134,6 +95,7 @@
   <script>
     function alarmaApp() {
       return {
+        // ASEGÚRATE QUE ESTA URL SEA LA DE TU SCRIPT ACTUALIZADO
         apiUrl: 'https://script.google.com/macros/s/AKfycbxqPPM3-SUt8eQEQVPIpsMYoyjbHTWi1E4wbA6y4FGbI7rJmtQ7FFSq19S10R1euhdt1A/exec',
         estado: 'login',
         codigoIngresado: '',
@@ -146,15 +108,8 @@
         init() {
           lucide.createIcons();
           this.audioAlarma.loop = true;
-          // Fix para App Inventor: Intentar recuperar de forma segura
-          try {
-            const savedCod = localStorage.getItem('user_cod_v2');
-            if (savedCod) {
-                this.codigoIngresado = savedCod;
-                this.ingresar(true);
-            }
-          } catch(e) { console.log("Storage no listo"); }
-          
+          const savedCod = localStorage.getItem('user_cod_v2');
+          if (savedCod) { this.codigoIngresado = savedCod; setTimeout(() => this.ingresar(true), 1000); }
           this.$watch('estado', () => this.$nextTick(() => lucide.createIcons()));
         },
 
@@ -162,41 +117,43 @@
           if (!this.codigoIngresado) return;
           this.buscando = true;
           try {
-            const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigoIngresado}`);
-            const data = await res.json();
+            // Cambiamos fetch por una técnica más compatible con WebViews antiguos
+            const response = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigoIngresado}`, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            const data = await response.json();
             if (data.success) {
               this.usuario = data;
               localStorage.setItem('user_cod_v2', this.codigoIngresado);
               this.estado = 'inicio';
               this.iniciarEscucha();
-            } else if (!silent) alert("Código Incorrecto");
-          } catch (e) { if(!silent) alert("Error de Conexión"); }
+            } else if (!silent) alert("Código no válido");
+          } catch (e) {
+            console.error(e);
+            if (!silent) alert("Error de Conexión: Revisa que el Script esté publicado para 'Anyone'");
+          }
           this.buscando = false;
         },
 
         async seleccionarAlarma(tipo) {
           this.estado = 'activa';
           this.respuestasRecibidas = [];
-          // Enviar alerta a la base de datos
-          try {
-            await fetch(this.apiUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.usuario.nombre, depto: this.usuario.depto })
-            });
-          } catch(e){}
+          fetch(this.apiUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'nueva_alerta', tipo, nombre: this.usuario.nombre, depto: this.usuario.depto })
+          });
           this.monitorearRespuestas();
         },
 
         async responderAlerta(status) {
           this.pararSonido();
-          try {
-            await fetch(this.apiUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              body: JSON.stringify({ action: 'responder_alerta', vecino: this.usuario.nombre, status: status })
-            });
-          } catch(e){}
+          fetch(this.apiUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'responder_alerta', vecino: this.usuario.nombre, status: status })
+          });
           this.estado = 'inicio';
         },
 
@@ -209,7 +166,7 @@
               if (data.length > 0 && data[0].depto !== this.usuario.depto) {
                 this.alertaEntrante = data[0];
                 this.estado = 'recibiendo';
-                this.audioAlarma.play().catch(() => {}); // Catch para navegadores que bloquean autoplay
+                this.audioAlarma.play().catch(() => {});
               }
             } catch (e) {}
           }, 5000);
@@ -225,7 +182,7 @@
                 this.respuestasRecibidas = data[0].respuestas.split('|');
               }
             } catch (e) {}
-          }, 3000);
+          }, 4000);
         },
 
         pararSonido() { this.audioAlarma.pause(); this.audioAlarma.currentTime = 0; }
