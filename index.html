@@ -578,9 +578,8 @@
 
 // ── Config ──────────────────────────────────────────────────────
 const API_URL = 'https://script.google.com/macros/s/AKfycbyHpoB2pdDvYE3Lg38Q4K0z8QW3q8XNDXPsfOD51fKFKvdDsKLgzYyvHiR0JPxaYipiQg/exec';
-const FETCH_TIMEOUT_MS  = 5000; // 5 seg — reducido para no congelar WebViewer
-const ESCUCHA_INTERVAL  = 2500; // cada 2.5 seg — polling rápido alertas entrantes
-const RESP_INTERVAL_MS  = 2000; // cada 2 seg — polling rápido de respondedores
+const FETCH_TIMEOUT_MS = 8000; // 8 seg — crítico para WebViewer que congela
+const ESCUCHA_INTERVAL  = 5000; // cada 5 seg polling de alertas entrantes
 
 // ── Estado global ────────────────────────────────────────────────
 let usuario       = { nombre: '', depto: '', codigo: '' };
@@ -593,7 +592,6 @@ let alertaEntrante = null;
 let alertasVistas  = [];
 let audioCtx       = null;
 let soundInterval  = null;
-var _respVistosSet = {}; // acumulador de respondedores mostrados
 
 // ── Utilidades DOM ───────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
@@ -786,26 +784,24 @@ function enviarAlertaReal() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> ENVIANDO...';
 
-  var tipoTexto = tipoSeleccionado === 'afuera' ? 'Sospechosos' : 'Emergencia';
-
   // Activar UI inmediatamente (no esperar respuesta de red)
   activarPantallaActiva();
 
-  // GET con params: evita preflight CORS, compatible con Google Apps Script no-cors
-  var params = '?action=nueva_alerta' +
-    '&id='     + encodeURIComponent(idAlerta) +
-    '&tipo='   + encodeURIComponent(tipoTexto) +
-    '&nombre=' + encodeURIComponent(usuario.nombre) +
-    '&depto='  + encodeURIComponent(usuario.depto);
-
-  fetchConTimeout(API_URL + params, {}, FETCH_TIMEOUT_MS)
-    .catch(function() {
-      showToast('⚠ Sin red — reintentando...', 3000);
-      // Reintento automático a los 3 seg
-      setTimeout(function() {
-        fetch(API_URL + params).catch(function() {});
-      }, 3000);
-    });
+  // Enviar a Google Sheets (modo no-cors, no leemos respuesta)
+  fetchConTimeout(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:  'nueva_alerta',
+      id:       idAlerta,
+      tipo:     tipoSeleccionado === 'afuera' ? 'Sospechosos' : 'Emergencia',
+      nombre:   usuario.nombre,
+      depto:    usuario.depto
+    })
+  }).catch(function() {
+    showToast('⚠ Sin red — reintentando...', 3000);
+  });
 
   // Reactivar botón por si regresa a confirmar
   btn.disabled = false;
@@ -814,7 +810,6 @@ function enviarAlertaReal() {
 
 function activarPantallaActiva() {
   segundos = 0;
-  _respVistosSet = {}; // resetear respondedores de sesión anterior
   $('resp-list').innerHTML =
     '<div class="waiting">' +
       '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>' +
@@ -843,10 +838,10 @@ function activarPantallaActiva() {
     $('active-timer').textContent = 'T+ ' + m + ':' + (s < 10 ? '0' : '') + s;
   }, 1000);
 
-  // Polling de respondedores (rápido)
+  // Polling de respondedores
   clearInterval(respInterval);
   actualizarRespondedores();
-  respInterval = setInterval(actualizarRespondedores, RESP_INTERVAL_MS);
+  respInterval = setInterval(actualizarRespondedores, 4000);
 }
 
 function terminarAlerta() {
@@ -857,31 +852,22 @@ function terminarAlerta() {
 }
 
 // ── RESPONDEDORES ─────────────────────────────────────────────────
-// Acumula respondedores recibidos sin borrar los anteriores
-
 function actualizarRespondedores() {
-  fetchConTimeout(API_URL + '?action=obtener_respondedores', {}, FETCH_TIMEOUT_MS)
+  fetchConTimeout(API_URL + '?action=obtener_respondedores')
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!Array.isArray(data) || data.length === 0) return;
       var list = $('resp-list');
-      // Primera vez: limpiar el "Esperando..."
-      var waiting = list.querySelector('.waiting');
-      if (waiting) { list.innerHTML = ''; _respVistosSet = {}; }
-
+      list.innerHTML = '';
       data.forEach(function(r) {
-        var key = String(r.depto || r.nombre || '');
-        if (_respVistosSet[key]) return; // ya mostrado
-        _respVistosSet[key] = true;
-
-        var ini  = (r.nombre || '?')[0].toUpperCase();
+        var ini = (r.nombre || '?')[0].toUpperCase();
         var item = document.createElement('div');
         item.className = 'resp-item';
         item.innerHTML =
           '<div class="resp-avatar">' + ini + '</div>' +
           '<div class="flex-1">' +
-            '<div class="resp-name">' + (r.nombre || 'Vecino') + '</div>' +
-            '<div class="resp-depto">Depto ' + (r.depto || '?') + '</div>' +
+            '<div class="resp-name">' + r.nombre + '</div>' +
+            '<div class="resp-depto">Depto ' + r.depto + '</div>' +
           '</div>' +
           '<div class="resp-check">✅</div>';
         list.appendChild(item);
@@ -929,31 +915,26 @@ function responderAlerta() {
   detenerSirenaContinua();
   if (!alertaEntrante) { mostrarPantalla('screen-inicio'); return; }
 
-  var alerta = alertaEntrante;
-
-  // Marcar como vista localmente de inmediato
-  alertasVistas.push(String(alerta.id));
+  // Marcar como vista localmente
+  alertasVistas.push(String(alertaEntrante.id));
   lsSet('av', JSON.stringify(alertasVistas));
+
+  // Notificar al servidor
+  fetchConTimeout(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:    'responder_alerta',
+      id_alerta:  alertaEntrante.id,
+      nombre:     usuario.nombre,
+      depto:      usuario.depto
+    })
+  }).catch(function() {});
+
   alertaEntrante = null;
-
-  // Feedback inmediato al usuario
   mostrarPantalla('screen-inicio');
-  showToast('✅ Respuesta enviada al vecino');
-
-  // Notificar al servidor via GET (compatible con no-cors en Google Apps Script)
-  // GET evita el preflight CORS que bloquea POST+JSON en WebViewer
-  var params = '?action=responder_alerta' +
-    '&id_alerta='  + encodeURIComponent(alerta.id) +
-    '&nombre='     + encodeURIComponent(usuario.nombre) +
-    '&depto='      + encodeURIComponent(usuario.depto);
-
-  fetchConTimeout(API_URL + params, {}, FETCH_TIMEOUT_MS)
-    .catch(function() {
-      // Reintento silencioso único
-      setTimeout(function() {
-        fetch(API_URL + params).catch(function() {});
-      }, 2000);
-    });
+  showToast('Respuesta registrada ✔');
 }
 
 function ignorarAlerta() {
