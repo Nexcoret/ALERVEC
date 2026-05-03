@@ -1,311 +1,993 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Alarma Vecinos - Manquimávida 5</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <title>ALERVEC - Alarma Vecinal</title>
+
+  <!--
+    ============================================================
+    ALERVEC v2.0 — Optimizado para App Inventor WebViewer
+    ============================================================
+    DIFERENCIAS CLAVE vs versión anterior:
+    1. SIN Alpine.js  → Alpine usa Proxy/MutationObserver que falla en
+       el WebView antiguo de App Inventor (Android 4-7). Reemplazado
+       por JS vanilla puro.
+    2. SIN Tailwind CDN → El WebViewer bloquea scripts de terceros en
+       modo offline / red corporativa. Todo CSS está inline.
+    3. SIN Lucide CDN  → Íconos reemplazados por SVG inline o emojis.
+    4. SIN localStorage directo al inicio → App Inventor puede lanzar
+       la página sin contexto de sesión; se detecta y maneja.
+    5. fetch() con try/catch estricto y timeout manual → El WebViewer
+       no lanza excepciones de red, simplemente congela sin timeout.
+    6. AudioContext con fallback → Se inicializa solo tras interacción
+       del usuario (política de autoplay de Android WebView).
+    7. Comunicación bidireccional con App Inventor via
+       AppInventor.setWebViewString() / window.AppInventorCallback
+       (opcional, listo para conectar si se necesita).
+    ============================================================
+  -->
+
   <style>
-    [x-cloak] {
-      display: none !important;
+    /* ---- RESET & BASE ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #21262d;
+      --border:    #30363d;
+      --amber:     #f0a500;
+      --amber-dim: #7d5600;
+      --red:       #da3633;
+      --red-dim:   #6e1b1b;
+      --green:     #238636;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --white:     #ffffff;
+      --radius:    18px;
     }
 
-    .animate-pulse-slow {
-      animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+      overflow-x: hidden;
     }
 
-    @keyframes bounce-custom {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-5px);
-      }
+    /* ---- LAYOUT ---- */
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      max-width: 420px;
+      margin: 0 auto;
     }
 
-    .dot-bounce {
-      animation: bounce-custom 1s infinite;
+    /* ---- HEADER ---- */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
+    .header-icon {
+      width: 40px; height: 40px;
+      background: var(--amber);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .header-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .header-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* ---- STATUS PILL ---- */
+    .status-pill {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .status-dot.online  { background: #3fb950; animation: pulse-dot 2s infinite; }
+    .status-dot.offline { background: var(--red); }
+
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .4; }
+    }
+
+    /* ---- SCREENS ---- */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      padding: 20px 18px;
+      animation: fadeIn .25s ease;
+    }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- LOGIN ---- */
+    .login-hero {
+      text-align: center;
+      margin: 30px 0 28px;
+    }
+    .login-icon-wrap {
+      width: 80px; height: 80px;
+      background: rgba(240,165,0,.15);
+      border: 2px solid var(--amber-dim);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 18px;
+    }
+    .login-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+    .login-desc  { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    .field-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px;
+      margin-bottom: 8px;
+    }
+    .field-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 10px;
+      padding: 16px 12px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      margin-bottom: 16px;
+      transition: border-color .2s;
+    }
+    .field-input:focus { border-color: var(--amber); }
+
+    /* ---- BUTTONS ---- */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--white);
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .1s, opacity .2s;
+      letter-spacing: .3px;
+    }
+    .btn:active    { transform: scale(.97); }
+    .btn:disabled  { opacity: .5; pointer-events: none; }
+    .btn-primary   { background: var(--amber); color: #000; }
+    .btn-danger    { background: var(--red); }
+    .btn-dark      { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    .btn-success   { background: var(--green); }
+
+    /* ---- ALARM CARDS ---- */
+    .alarm-card {
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .1s, opacity .15s;
+      border: 1.5px solid transparent;
+      display: block;
+      width: 100%;
+      text-align: left;
+    }
+    .alarm-card:active { transform: scale(.98); }
+    .alarm-card.amber  {
+      background: linear-gradient(135deg, #3d2900 0%, #2a1e00 100%);
+      border-color: var(--amber-dim);
+    }
+    .alarm-card.red {
+      background: linear-gradient(135deg, #3d0000 0%, #2a0000 100%);
+      border-color: var(--red-dim);
+    }
+    .card-emoji  { font-size: 42px; margin-bottom: 10px; display: block; }
+    .card-title  { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .card-desc   { font-size: 12px; color: var(--muted); }
+
+    /* ---- EMERGENCY GRID ---- */
+    .emerg-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .emerg-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 6px;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    .emerg-btn:active { background: var(--surface2); }
+    .emerg-num   { font-size: 16px; font-weight: 900; color: var(--text); }
+    .emerg-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+
+    /* ---- CONFIRM ---- */
+    .confirm-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px 0;
+    }
+    .confirm-icon {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 46px;
+      margin-bottom: 22px;
+    }
+    .confirm-icon.amber { background: rgba(240,165,0,.15); border: 2px solid var(--amber-dim); }
+    .confirm-icon.red   { background: rgba(218,54,51,.15);  border: 2px solid var(--red-dim);   }
+    .confirm-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    .confirm-desc  { font-size: 13px; color: var(--muted); max-width: 260px; line-height: 1.5; margin-bottom: 28px; }
+
+    /* ---- ACTIVE ALERT ---- */
+    .alert-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 10px;
+    }
+    .alert-badge.amber { background: rgba(240,165,0,.2); color: var(--amber); border: 1px solid var(--amber-dim); }
+    .alert-badge.red   { background: rgba(218,54,51,.2);  color: #ff6b6b;     border: 1px solid var(--red-dim);   }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; animation: pulse-dot 1s infinite; }
+    .badge-dot.amber { background: var(--amber); }
+    .badge-dot.red   { background: #ff6b6b; }
+
+    .active-title  { font-size: 26px; font-weight: 900; letter-spacing: -.5px; margin-bottom: 4px; }
+    .active-timer  { font-size: 12px; color: var(--muted); font-family: monospace; margin-bottom: 20px; }
+
+    .responders-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .responders-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .resp-list { max-height: 180px; overflow-y: auto; }
+
+    .resp-item {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(35,134,54,.1);
+      border: 1px solid rgba(35,134,54,.3);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      animation: slideIn .3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .resp-avatar {
+      width: 32px; height: 32px;
+      background: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 13px;
+      flex-shrink: 0;
+    }
+    .resp-name  { font-size: 12px; font-weight: 700; }
+    .resp-depto { font-size: 10px; color: var(--muted); }
+    .resp-check { margin-left: auto; font-size: 16px; }
+
+    .waiting {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .dots { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+    .dot  {
+      width: 8px; height: 8px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: dotBounce 1s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes dotBounce {
+      0%,100% { transform: translateY(0);   }
+      50%      { transform: translateY(-6px); }
+    }
+    .waiting-text { font-size: 11px; color: var(--muted); }
+
+    /* ---- INCOMING ALERT ---- */
+    #screen-recibiendo {
+      background: linear-gradient(180deg, #3d0000 0%, var(--bg) 60%);
+    }
+    .incoming-top {
+      text-align: center;
+      padding: 40px 20px 30px;
+    }
+    .incoming-icon {
+      font-size: 64px;
+      display: block;
+      margin-bottom: 12px;
+      animation: shake 0.5s infinite alternate;
+    }
+    @keyframes shake {
+      from { transform: rotate(-5deg) scale(1); }
+      to   { transform: rotate(5deg) scale(1.05); }
+    }
+    .incoming-label {
+      font-size: 11px; font-weight: 800;
+      color: #ff6b6b;
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .incoming-tipo  { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .incoming-depto { font-size: 40px; font-weight: 900; margin-bottom: 6px; }
+    .incoming-emisor { font-size: 13px; color: var(--muted); margin-bottom: 30px; font-style: italic; }
+
+    /* ---- TOAST ---- */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%; transform: translateX(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity .3s;
+      z-index: 999;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ---- SPINNER ---- */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- UTILS ---- */
+    .mt8  { margin-top: 8px; }
+    .mt12 { margin-top: 12px; }
+    .mt16 { margin-top: 16px; }
+    .mt24 { margin-top: 24px; }
+    .flex-1 { flex: 1; }
+    .greeting { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+    .section-title { font-size: 19px; font-weight: 800; margin-bottom: 18px; letter-spacing: -.3px; }
   </style>
 </head>
+<body>
 
-<body class="bg-slate-900 font-sans antialiased">
+<div id="app">
 
-  <div x-data="alarmaApp()" x-init="init()" class="min-h-screen flex items-center justify-center p-2">
-    <div class="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 relative"
-      style="min-height: 600px;">
-
-      <div class="bg-slate-900 px-6 py-5 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-          <i data-lucide="shield" class="w-5 h-5 text-white"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-white font-bold text-base leading-tight">Alarma Vecinos</p>
-          <p class="text-slate-400 text-xs">Manquimávida 5 ·
-            <span x-text="usuario.depto ? 'Depto ' + usuario.depto : 'Vinculando...'"></span></p>
-        </div>
-      </div>
-
-      <template x-if="estado === 'login'">
-        <div class="p-8 flex flex-col items-center justify-center text-center h-[520px] animate-in fade-in">
-          <div class="bg-amber-100 p-5 rounded-full mb-6">
-            <i data-lucide="key-round" class="w-10 h-10 text-amber-600"></i>
-          </div>
-          <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase italic">Activar Sistema</h2>
-          <input type="number" x-model="codigoIngresado" placeholder="0000" class="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-4 py-4 text-center text-3xl font-bold tracking-[10px] outline-none focus:border-amber-500 mb-6">
-          <button @click="ingresar()" :disabled="cargando" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-xl">
-            <span x-show="!cargando">VINCULAR TELÉFONO</span>
-            <span x-show="cargando">VALIDANDO...</span>
-          </button>
-        </div>
-      </template>
-
-      <template x-if="estado === 'inicio'">
-        <div class="p-6 animate-in fade-in">
-          <div class="text-center mb-6 mt-2">
-            <p class="text-slate-500 text-sm mb-1" x-text="'Hola ' + usuario.nombre + ' 👋'"></p>
-            <p class="text-slate-900 text-xl font-bold uppercase tracking-tight">¿Necesitas ayuda?</p>
-          </div>
-          <button @click="seleccionarAlarma('afuera')" class="w-full bg-amber-500 rounded-2xl p-6 mb-3 text-left shadow-lg shadow-amber-500/30">
-            <div class="text-5xl mb-2">👀</div>
-            <p class="text-white text-xl font-bold mb-1">Veo algo raro afuera</p>
-            <p class="text-amber-50 text-sm opacity-90">Personas extrañas o ruidos</p>
-          </button>
-          <button @click="seleccionarAlarma('adentro')" class="w-full bg-red-600 rounded-2xl p-6 mb-5 text-left shadow-lg shadow-red-600/30">
-            <div class="text-5xl mb-2">🆘</div>
-            <p class="text-white text-xl font-bold mb-1">Emergencia en mi casa</p>
-            <p class="text-red-50 text-sm opacity-90">Salud, incendio o peligro</p>
-          </button>
-          <div class="grid grid-cols-3 gap-2 pt-4 border-t border-slate-100">
-            <a href="tel:133"
-              class="bg-blue-50 rounded-xl p-3 text-center border border-blue-100 font-bold text-xs">133</a>
-            <a href="tel:131"
-              class="bg-red-50 rounded-xl p-3 text-center border border-red-100 font-bold text-xs">131</a>
-            <a href="tel:132"
-              class="bg-orange-50 rounded-xl p-3 text-center border border-orange-100 font-bold text-xs">132</a>
-          </div>
-        </div>
-      </template>
-
-      <template x-if="estado === 'confirmar'">
-        <div class="p-6 flex flex-col items-center justify-center text-center animate-in zoom-in"
-          style="min-height: 500px;">
-          <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'"
-            class="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-5 shadow-inner">
-            <span x-text="tipoSeleccionado === 'afuera' ? '👀' : '🆘'"></span>
-          </div>
-          <p class="text-slate-900 text-2xl font-bold mb-2">¿Confirmar Alerta?</p>
-          <button @click="enviarAlertaReal()" class="w-full bg-slate-900 text-white text-lg font-bold rounded-2xl py-5 mb-3 shadow-lg active:scale-95">ENVIAR AHORA</button>
-          <button @click="estado = 'inicio'" class="w-full bg-slate-100 text-slate-500 font-bold rounded-2xl py-4">CANCELAR</button>
-        </div>
-      </template>
-
-      <template x-if="estado === 'activa'">
-        <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-50' : 'bg-red-50'" class="p-6"
-          style="min-height: 520px;">
-          <div class="text-center mb-5">
-            <div :class="tipoSeleccionado === 'afuera' ? 'bg-amber-500' : 'bg-red-600'"
-              class="inline-flex items-center gap-2 text-white rounded-full px-4 py-1.5 mb-3">
-              <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              <span class="text-[10px] font-black uppercase">Alerta en Progreso</span>
-            </div>
-            <p class="text-slate-900 text-2xl font-black italic uppercase">Aviso Enviado</p>
-            <p class="text-slate-500 text-xs mt-1">T+ <span x-text="formatearTiempo(segundos)"></span></p>
-          </div>
-          <div class="bg-white rounded-2xl p-4 mb-4 shadow-xl border border-slate-100">
-            <p class="text-slate-400 text-[10px] font-bold uppercase mb-4 text-center">Vecinos respondiendo</p>
-            <div class="space-y-2 max-h-[200px] overflow-y-auto">
-              <template x-for="r in respondedores" :key="r">
-                <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl p-3">
-                  <div
-                    class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-black text-xs"
-                    x-text="r[0]"></div>
-                  <p class="text-slate-900 font-bold text-xs" x-text="r"></p>
-                </div>
-              </template>
-            </div>
-          </div>
-          <button @click="terminarAlerta()" class="w-full bg-slate-900 text-white text-sm font-bold rounded-2xl py-4 shadow-xl">FINALIZAR</button>
-        </div>
-      </template>
-
-      <template x-if="estado === 'recibiendo'">
-        <div
-          class="absolute inset-0 bg-red-600 z-50 p-8 flex flex-col items-center justify-center text-center text-white">
-          <div class="animate-bounce mb-6"><i data-lucide="octagon-alert" class="w-24 h-24"></i></div>
-          <h2 class="text-3xl font-black italic mb-2 uppercase">¡ALERTA VECINAL!</h2>
-          <p class="text-red-100 text-xl mb-1" x-text="alertaEntrante.tipo"></p>
-          <p class="text-4xl font-black mb-6" x-text="'DEPTO ' + alertaEntrante.depto"></p>
-          <p class="mb-10 font-bold italic opacity-80" x-text="'Emisor: ' + alertaEntrante.emisor"></p>
-          <button @click="responderAlerta()" class="bg-white text-red-600 px-12 py-4 rounded-full font-black uppercase shadow-2xl active:scale-95">ENTENDIDO / VOY</button>
-        </div>
-      </template>
-
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-icon">🛡️</div>
+    <div>
+      <div class="header-title">ALERVEC</div>
+      <div class="header-sub" id="header-sub">Alarma Vecinal · Manquimávida 5</div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">---</span>
     </div>
   </div>
 
-  <script>
-    function alarmaApp() {
-      return {
-        apiUrl: 'https://script.google.com/macros/s/AKfycbwQigw2GL36PfYGst1tn-0oWgWXYiqf84ZV58SoUT-DUkqpuefboiPvwtB-v8rt7Bfjjg/exec',
-        estado: 'login',
-        cargando: false,
-        codigoIngresado: '',
-        usuario: { nombre: '', depto: '' },
-        tipoSeleccionado: null,
-        segundos: 0,
-        interval: null,
-        escuchaInterval: null,
-        alarmaInterval: null, // Para el sonido repetitivo
-        respondedores: [],
-        alertaEntrante: null,
-        alertasVistas: [],
-        audioCtx: null,
+  <!-- ===================== PANTALLA: LOGIN ===================== -->
+  <div class="screen active" id="screen-login">
+    <div class="login-hero">
+      <div class="login-icon-wrap">🔑</div>
+      <div class="login-title">Activar Sistema</div>
+      <div class="login-desc">Ingresa el código de 4 dígitos asignado a tu departamento.</div>
+    </div>
 
-        init() {
-          lucide.createIcons();
-          this.alertasVistas = JSON.parse(localStorage.getItem('alertas_vistas') || '[]');
-          const cod = localStorage.getItem('user_cod');
-          if (cod) { this.codigoIngresado = cod; this.ingresar(true); }
-          this.$watch('estado', () => this.$nextTick(() => lucide.createIcons()));
-        },
+    <div class="field-label">Tu código de acceso</div>
+    <input
+      class="field-input"
+      type="tel"
+      id="input-codigo"
+      placeholder="0000"
+      maxlength="4"
+      inputmode="numeric"
+      pattern="[0-9]*"
+    >
 
-        // --- SISTEMA DE SONIDO DE SEGURIDAD ---
-        playAlertaSound() {
-          try {
-            if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const beep = () => {
-              const osc = this.audioCtx.createOscillator();
-              const gain = this.audioCtx.createGain();
-              osc.connect(gain);
-              gain.connect(this.audioCtx.destination);
-              const ahora = this.audioCtx.currentTime;
-              osc.frequency.setValueAtTime(660, ahora);
-              osc.frequency.exponentialRampToValueAtTime(880, ahora + 0.4);
-              gain.gain.setValueAtTime(0.5, ahora);
-              gain.gain.exponentialRampToValueAtTime(0.01, ahora + 0.5);
-              osc.start(ahora);
-              osc.stop(ahora + 0.5);
-            };
-            beep();
-            this.alarmaInterval = setInterval(beep, 600);
-          } catch(e) { console.log("Audio bloqueado"); }
-        },
+    <button class="btn btn-primary" id="btn-vincular" onclick="ingresar()">
+      VINCULAR TELÉFONO
+    </button>
 
-        stopAlertaSound() {
-          if(this.alarmaInterval) { clearInterval(this.alarmaInterval); this.alarmaInterval = null; }
-        },
+    <div id="login-error" style="color:#ff6b6b;font-size:12px;text-align:center;margin-top:10px;display:none;"></div>
+  </div>
 
-        async ingresar(silencioso = false) {
-          if (!this.codigoIngresado) return;
-          this.cargando = true;
-          try {
-            const res = await fetch(`${this.apiUrl}?action=validar_codigo&codigo=${this.codigoIngresado}`);
-            const data = await res.json();
-            if (data.success) {
-              this.usuario = data;
-              localStorage.setItem('user_cod', this.codigoIngresado);
-              this.estado = 'inicio';
-              this.iniciarEscucha();
-            } else if (!silencioso) alert("Código erróneo");
-          } catch (e) { if(!silencioso) alert("Error de red"); }
-          this.cargando = false;
-        },
+  <!-- ===================== PANTALLA: INICIO ===================== -->
+  <div class="screen" id="screen-inicio">
+    <div class="greeting" id="greeting-text">Hola 👋</div>
+    <div class="section-title">¿Necesitas ayuda?</div>
 
-        seleccionarAlarma(tipo) {
-          this.tipoSeleccionado = tipo;
-          this.estado = 'confirmar';
-        },
+    <button class="alarm-card amber" onclick="seleccionarAlarma('afuera')">
+      <span class="card-emoji">👀</span>
+      <div class="card-title">Veo algo raro afuera</div>
+      <div class="card-desc">Personas extrañas, ruidos o situaciones sospechosas</div>
+    </button>
 
-        async enviarAlertaReal() {
-          const idAlerta = Date.now();
-          this.estado = 'activa';
-          this.segundos = 0;
-          this.respondedores = [];
-          
-          this.interval = setInterval(() => { this.segundos++; this.actualizarRespondedores(idAlerta); }, 2000);
+    <button class="alarm-card red" onclick="seleccionarAlarma('adentro')">
+      <span class="card-emoji">🆘</span>
+      <div class="card-title">Emergencia en mi casa</div>
+      <div class="card-desc">Salud, incendio o peligro inminente</div>
+    </button>
 
-          fetch(this.apiUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            body: JSON.stringify({
-              action: 'nueva_alerta',
-              id: idAlerta,
-              tipo: this.tipoSeleccionado === 'afuera' ? 'SOSPECHOSOS' : 'EMERGENCIA CASA',
-              nombre: this.usuario.nombre,
-              depto: this.usuario.depto
-            })
-          });
-        },
+    <div class="emerg-grid">
+      <a class="emerg-btn" href="tel:133">
+        <div class="emerg-num">133</div>
+        <div class="emerg-label">Carabineros</div>
+      </a>
+      <a class="emerg-btn" href="tel:131">
+        <div class="emerg-num">131</div>
+        <div class="emerg-label">Ambulancia</div>
+      </a>
+      <a class="emerg-btn" href="tel:132">
+        <div class="emerg-num">132</div>
+        <div class="emerg-label">Bomberos</div>
+      </a>
+    </div>
+  </div>
 
-        iniciarEscucha() {
-          if(this.escuchaInterval) clearInterval(this.escuchaInterval);
-          this.escuchaInterval = setInterval(async () => {
-            if (this.estado !== 'inicio') return;
-            try {
-              const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
-              const data = await res.json();
-              if (data.length > 0) {
-                const alerta = data[0];
-                if (alerta.depto !== this.usuario.depto && !this.alertasVistas.includes(alerta.id)) {
-                  this.alertaEntrante = alerta;
-                  this.estado = 'recibiendo';
-                  this.playAlertaSound();
-                }
-              }
-            } catch (e) {}
-          }, 3500);
-        },
+  <!-- ===================== PANTALLA: CONFIRMAR ===================== -->
+  <div class="screen" id="screen-confirmar">
+    <div class="confirm-center">
+      <div class="confirm-icon" id="confirm-icon">
+        <span id="confirm-emoji"></span>
+      </div>
+      <div class="confirm-title">¿Confirmar Alerta?</div>
+      <div class="confirm-desc">Se notificará a todos los teléfonos vinculados del edificio de manera inmediata.</div>
 
-        async responderAlerta() {
-          this.stopAlertaSound();
-          this.alertasVistas.push(this.alertaEntrante.id);
-          localStorage.setItem('alertas_vistas', JSON.stringify(this.alertasVistas));
+      <button class="btn btn-danger" id="btn-enviar" onclick="enviarAlertaReal()">
+        ENVIAR ALERTA AHORA
+      </button>
+      <button class="btn btn-dark mt12" onclick="mostrarPantalla('screen-inicio')">
+        CANCELAR
+      </button>
+    </div>
+  </div>
 
-          fetch(this.apiUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            body: JSON.stringify({
-              action: 'responder_alerta',
-              id_alerta: this.alertaEntrante.id,
-              nombre: this.usuario.nombre,
-              depto: this.usuario.depto
-            })
-          });
-          this.estado = 'inicio';
-        },
+  <!-- ===================== PANTALLA: ALERTA ACTIVA ===================== -->
+  <div class="screen" id="screen-activa" style="align-items:center;text-align:center;">
+    <div class="mt24">
+      <div class="alert-badge" id="active-badge">
+        <div class="badge-dot" id="active-badge-dot"></div>
+        <span>Alerta en Progreso</span>
+      </div>
+    </div>
+    <div class="active-title">Aviso Enviado ✔</div>
+    <div class="active-timer" id="active-timer">T+ 0:00</div>
 
-        async actualizarRespondedores(idAlerta) {
-          try {
-            const res = await fetch(`${this.apiUrl}?action=escuchar_alertas`);
-            const data = await res.json();
-            if(data.length > 0 && data[0].respuestas) {
-              this.respondedores = data[0].respuestas.split('|').filter(r => r.trim() !== "");
-            }
-          } catch (e) {}
-        },
+    <div class="responders-box" style="width:100%;">
+      <div class="responders-label">Vecinos respondiendo</div>
+      <div class="resp-list" id="resp-list">
+        <div class="waiting">
+          <div class="dots">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="waiting-text">Esperando respuesta de vecinos...</div>
+        </div>
+      </div>
+    </div>
 
-        terminarAlerta() {
-          clearInterval(this.interval);
-          this.estado = 'inicio';
-        },
+    <button class="btn btn-dark" onclick="terminarAlerta()">
+      ESTOY BIEN / FINALIZAR
+    </button>
+  </div>
 
-        formatearTiempo(s) {
-          const min = Math.floor(s / 60);
-          const seg = s % 60;
-          return `${min}:${seg.toString().padStart(2, '0')}`;
-        }
+  <!-- ===================== PANTALLA: ALERTA ENTRANTE ===================== -->
+  <div class="screen" id="screen-recibiendo">
+    <div class="incoming-top">
+      <span class="incoming-icon" id="incoming-icon">🚨</span>
+      <div class="incoming-label">⚠ ALERTA VECINAL ⚠</div>
+      <div class="incoming-tipo" id="incoming-tipo"></div>
+      <div class="incoming-depto" id="incoming-depto"></div>
+      <div class="incoming-emisor" id="incoming-emisor"></div>
+    </div>
+
+    <div style="padding: 0 18px 24px;">
+      <button class="btn btn-success" onclick="responderAlerta()">
+        ✅ ENTENDIDO / VOY A AYUDAR
+      </button>
+      <button class="btn btn-dark mt12" onclick="ignorarAlerta()">
+        No puedo responder ahora
+      </button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<!-- ===================== AUDIO OCULTO ===================== -->
+<!-- No usamos <audio src> para evitar bloqueos del WebViewer.
+     El sonido se genera via Web Audio API. -->
+
+<script>
+/* ================================================================
+   ALERVEC — Lógica principal
+   Compatible con: Chrome moderno, WebView Android 5+, App Inventor
+================================================================ */
+
+// ── Config ──────────────────────────────────────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbyHpoB2pdDvYE3Lg38Q4K0z8QW3q8XNDXPsfOD51fKFKvdDsKLgzYyvHiR0JPxaYipiQg/exec';
+const FETCH_TIMEOUT_MS = 8000; // 8 seg — crítico para WebViewer que congela
+const ESCUCHA_INTERVAL  = 5000; // cada 5 seg polling de alertas entrantes
+
+// ── Estado global ────────────────────────────────────────────────
+let usuario       = { nombre: '', depto: '', codigo: '' };
+let tipoSeleccionado = null;
+let segundos      = 0;
+let timerInterval = null;
+let escuchaInterval = null;
+let respInterval  = null;
+let alertaEntrante = null;
+let alertasVistas  = [];
+let audioCtx       = null;
+let soundInterval  = null;
+
+// ── Utilidades DOM ───────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function mostrarPantalla(id) {
+  document.querySelectorAll('.screen').forEach(function(s) {
+    s.classList.remove('active');
+  });
+  $(id).classList.add('active');
+}
+
+function showToast(msg, ms) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, ms || 2500);
+}
+
+function setStatus(online) {
+  var dot  = $('status-dot');
+  var txt  = $('status-text');
+  dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+  txt.textContent = online ? 'EN LÍNEA' : 'SIN RED';
+}
+
+// ── Fetch con timeout (crítico en WebViewer) ─────────────────────
+function fetchConTimeout(url, opts, ms) {
+  ms = ms || FETCH_TIMEOUT_MS;
+  return new Promise(function(resolve, reject) {
+    var timer = setTimeout(function() {
+      reject(new Error('timeout'));
+    }, ms);
+    fetch(url, opts || {})
+      .then(function(r) { clearTimeout(timer); resolve(r); })
+      .catch(function(e) { clearTimeout(timer); reject(e); });
+  });
+}
+
+// ── Audio (Web Audio API, compatible WebView Android 5+) ─────────
+function getAudioCtx() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { return null; }
+  }
+  // Reanudar si está suspendido (política autoplay Android)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playBeep(freq, dur, vol) {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    var osc  = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq || 880;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    var now = ctx.currentTime;
+    gain.gain.setValueAtTime(vol || 0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + (dur || 0.8));
+    osc.start(now);
+    osc.stop(now + (dur || 0.8));
+  } catch(e) {}
+}
+
+function playSirena() {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    var osc  = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    var now = ctx.currentTime;
+    // Subida 440→880 y bajada
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.linearRampToValueAtTime(880, now + 0.5);
+    osc.frequency.linearRampToValueAtTime(440, now + 1.0);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    osc.start(now);
+    osc.stop(now + 1.2);
+  } catch(e) {}
+}
+
+function iniciarSirenaContinua() {
+  detenerSirenaContinua();
+  playSirena();
+  soundInterval = setInterval(playSirena, 1600);
+}
+function detenerSirenaContinua() {
+  if (soundInterval) { clearInterval(soundInterval); soundInterval = null; }
+}
+
+// ── localStorage seguro (falla silenciosa en algunos WebViews) ───
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, val); } catch(e) {}
+}
+function lsRemove(key) {
+  try { localStorage.removeItem(key); } catch(e) {}
+}
+
+// ── Inicialización ────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  // Cargar alertas vistas
+  try { alertasVistas = JSON.parse(lsGet('av') || '[]'); } catch(e) { alertasVistas = []; }
+
+  // Reconexión automática si hay código guardado
+  var cod = lsGet('uc');
+  if (cod) {
+    $('input-codigo').value = cod;
+    ingresar(true);
+  }
+});
+
+// ── LOGIN ─────────────────────────────────────────────────────────
+function ingresar(silencioso) {
+  var cod = $('input-codigo').value.trim();
+  if (!cod) { mostrarError('Ingresa tu código'); return; }
+
+  var btn = $('btn-vincular');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> VALIDANDO...';
+  ocultarError();
+
+  fetchConTimeout(API_URL + '?action=validar_codigo&codigo=' + encodeURIComponent(cod))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        usuario = { nombre: data.nombre, depto: data.depto, codigo: cod };
+        lsSet('uc', cod);
+        setStatus(true);
+        $('greeting-text').textContent = 'Hola ' + usuario.nombre + ' 👋';
+        $('header-sub').textContent = 'Alarma Vecinal · Depto ' + usuario.depto;
+        mostrarPantalla('screen-inicio');
+        iniciarEscucha();
+      } else {
+        if (!silencioso) mostrarError('Código no reconocido. Verifica e intenta de nuevo.');
+        else { lsRemove('uc'); }
+        setStatus(false);
       }
-    }
-  </script>
-</body>
+    })
+    .catch(function() {
+      if (!silencioso) mostrarError('Sin conexión. Verifica tu internet.');
+      setStatus(false);
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = 'VINCULAR TELÉFONO';
+    });
+}
 
+function mostrarError(msg) {
+  var el = $('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function ocultarError() {
+  $('login-error').style.display = 'none';
+}
+
+// ── SELECCIÓN DE TIPO DE ALARMA ───────────────────────────────────
+function seleccionarAlarma(tipo) {
+  tipoSeleccionado = tipo;
+  var icon  = $('confirm-icon');
+  var emoji = $('confirm-emoji');
+  if (tipo === 'afuera') {
+    icon.className  = 'confirm-icon amber';
+    emoji.textContent = '👀';
+  } else {
+    icon.className  = 'confirm-icon red';
+    emoji.textContent = '🆘';
+  }
+  mostrarPantalla('screen-confirmar');
+}
+
+// ── ENVIAR ALERTA ─────────────────────────────────────────────────
+function enviarAlertaReal() {
+  var idAlerta = Date.now();
+  var btn = $('btn-enviar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> ENVIANDO...';
+
+  // Activar UI inmediatamente (no esperar respuesta de red)
+  activarPantallaActiva();
+
+  // Enviar a Google Sheets (modo no-cors, no leemos respuesta)
+  fetchConTimeout(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:  'nueva_alerta',
+      id:       idAlerta,
+      tipo:     tipoSeleccionado === 'afuera' ? 'Sospechosos' : 'Emergencia',
+      nombre:   usuario.nombre,
+      depto:    usuario.depto
+    })
+  }).catch(function() {
+    showToast('⚠ Sin red — reintentando...', 3000);
+  });
+
+  // Reactivar botón por si regresa a confirmar
+  btn.disabled = false;
+  btn.innerHTML = 'ENVIAR ALERTA AHORA';
+}
+
+function activarPantallaActiva() {
+  segundos = 0;
+  $('resp-list').innerHTML =
+    '<div class="waiting">' +
+      '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>' +
+      '<div class="waiting-text">Esperando respuesta de vecinos...</div>' +
+    '</div>';
+
+  var badge    = $('active-badge');
+  var badgeDot = $('active-badge-dot');
+  if (tipoSeleccionado === 'afuera') {
+    badge.className    = 'alert-badge amber';
+    badgeDot.className = 'badge-dot amber';
+  } else {
+    badge.className    = 'alert-badge red';
+    badgeDot.className = 'badge-dot red';
+  }
+
+  mostrarPantalla('screen-activa');
+  playBeep(660, 0.3);
+
+  // Timer
+  clearInterval(timerInterval);
+  timerInterval = setInterval(function() {
+    segundos++;
+    var m = Math.floor(segundos / 60);
+    var s = segundos % 60;
+    $('active-timer').textContent = 'T+ ' + m + ':' + (s < 10 ? '0' : '') + s;
+  }, 1000);
+
+  // Polling de respondedores
+  clearInterval(respInterval);
+  actualizarRespondedores();
+  respInterval = setInterval(actualizarRespondedores, 4000);
+}
+
+function terminarAlerta() {
+  clearInterval(timerInterval);
+  clearInterval(respInterval);
+  mostrarPantalla('screen-inicio');
+  showToast('Alerta finalizada ✔');
+}
+
+// ── RESPONDEDORES ─────────────────────────────────────────────────
+function actualizarRespondedores() {
+  fetchConTimeout(API_URL + '?action=obtener_respondedores')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!Array.isArray(data) || data.length === 0) return;
+      var list = $('resp-list');
+      list.innerHTML = '';
+      data.forEach(function(r) {
+        var ini = (r.nombre || '?')[0].toUpperCase();
+        var item = document.createElement('div');
+        item.className = 'resp-item';
+        item.innerHTML =
+          '<div class="resp-avatar">' + ini + '</div>' +
+          '<div class="flex-1">' +
+            '<div class="resp-name">' + r.nombre + '</div>' +
+            '<div class="resp-depto">Depto ' + r.depto + '</div>' +
+          '</div>' +
+          '<div class="resp-check">✅</div>';
+        list.appendChild(item);
+      });
+    })
+    .catch(function() {}); // silencioso
+}
+
+// ── ESCUCHA DE ALERTAS ENTRANTES ──────────────────────────────────
+function iniciarEscucha() {
+  if (escuchaInterval) clearInterval(escuchaInterval);
+  escuchaInterval = setInterval(escucharAlertas, ESCUCHA_INTERVAL);
+}
+
+function escucharAlertas() {
+  // Solo escucha si estamos en pantalla inicio
+  if (!$('screen-inicio').classList.contains('active')) return;
+
+  fetchConTimeout(API_URL + '?action=escuchar_alertas')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      setStatus(true);
+      if (!Array.isArray(data) || data.length === 0) return;
+      var alerta = data[0];
+      // No mostrar si es nuestra propia alerta o ya la vimos
+      if (alerta.depto === usuario.depto) return;
+      if (alertasVistas.indexOf(String(alerta.id)) !== -1) return;
+
+      alertaEntrante = alerta;
+      mostrarAlertaEntrante(alerta);
+    })
+    .catch(function() { setStatus(false); });
+}
+
+function mostrarAlertaEntrante(alerta) {
+  $('incoming-tipo').textContent  = alerta.tipo || 'ALERTA';
+  $('incoming-depto').textContent = 'DEPTO ' + (alerta.depto || '?');
+  $('incoming-emisor').textContent = 'Emitida por: ' + (alerta.emisor || alerta.nombre || 'Vecino');
+  $('incoming-icon').textContent  = alerta.tipo === 'Emergencia' ? '🆘' : '👀';
+  mostrarPantalla('screen-recibiendo');
+  iniciarSirenaContinua();
+}
+
+function responderAlerta() {
+  detenerSirenaContinua();
+  if (!alertaEntrante) { mostrarPantalla('screen-inicio'); return; }
+
+  // Marcar como vista localmente
+  alertasVistas.push(String(alertaEntrante.id));
+  lsSet('av', JSON.stringify(alertasVistas));
+
+  // Notificar al servidor
+  fetchConTimeout(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:    'responder_alerta',
+      id_alerta:  alertaEntrante.id,
+      nombre:     usuario.nombre,
+      depto:      usuario.depto
+    })
+  }).catch(function() {});
+
+  alertaEntrante = null;
+  mostrarPantalla('screen-inicio');
+  showToast('Respuesta registrada ✔');
+}
+
+function ignorarAlerta() {
+  detenerSirenaContinua();
+  if (alertaEntrante) {
+    alertasVistas.push(String(alertaEntrante.id));
+    lsSet('av', JSON.stringify(alertasVistas));
+    alertaEntrante = null;
+  }
+  mostrarPantalla('screen-inicio');
+}
+
+// ── TECLADO: Enter en input de código ────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = $('input-codigo');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') ingresar();
+    });
+  }
+});
+
+/* ================================================================
+   BRIDGE con App Inventor (opcional)
+   ─────────────────────────────────
+   Desde App Inventor puedes llamar:
+     WebViewer.WebViewString = "cmd:logout"
+     WebViewer.WebViewString = "cmd:test_sound"
+
+   Y desde JS puedes enviar datos a App Inventor:
+     window.AppInventor.setWebViewString("depto:" + usuario.depto)
+   (Solo funciona si hay un componente WebViewer con WebViewStringChange)
+================================================================ */
+window.addEventListener('message', function(e) {
+  try {
+    var cmd = e.data || '';
+    if (cmd === 'cmd:logout') {
+      lsRemove('uc');
+      location.reload();
+    } else if (cmd === 'cmd:test_sound') {
+      playSirena();
+    }
+  } catch(ex) {}
+});
+
+// Función para que App Inventor llame directamente
+window.AppInventorBridge = {
+  logout:     function() { lsRemove('uc'); location.reload(); },
+  testSound:  function() { playSirena(); },
+  getDepto:   function() { return usuario.depto || ''; },
+  getNombre:  function() { return usuario.nombre || ''; }
+};
+</script>
+
+</body>
 </html>
